@@ -653,6 +653,14 @@ function submitQuickEntry(){
   openAddMov({ valor, desc, tipo: _qeTipo });
 }
 
+// Devolve 'mv-col1' ou 'mv-col2' — o campo de texto livre para este tipo
+// (Receitas tem o texto em col1/Fonte; Despesas e Poupanças em col2/Descrição).
+function qeTextFieldId(tipo){
+  const cfg = movFieldsConfig(tipo);
+  if (cfg.col1 && cfg.col1.type === 'text') return 'mv-col1';
+  return 'mv-col2';
+}
+
 function openAddMov(prefill){
   document.body.insertAdjacentHTML('beforeend', modalMovHTML(null));
   // Força selects a começar vazios (browser selecciona o primeiro por defeito)
@@ -671,13 +679,13 @@ function openAddMov(prefill){
   if (prefill) {
     setTimeout(() => {
       if (prefill.valor && $('mv-valor')) $('mv-valor').value = prefill.valor;
-      if (prefill.desc  && $('mv-col2'))  $('mv-col2').value  = prefill.desc;
+      if (prefill.desc) { const f = $(qeTextFieldId(prefill.tipo || 'despesa')); if (f) f.value = prefill.desc; }
       if (prefill.tipo) {
         const t = prefill.tipo.toLowerCase();
         if ($('mv-tipo')) { $('mv-tipo').value = t; updateMovFields(); }
         setTimeout(() => {
           if (prefill.valor && $('mv-valor')) $('mv-valor').value = prefill.valor;
-          if (prefill.desc  && $('mv-col2'))  $('mv-col2').value  = prefill.desc;
+          if (prefill.desc) { const f = $(qeTextFieldId(t)); if (f) f.value = prefill.desc; }
         }, 50);
       }
     }, 50);
@@ -711,7 +719,7 @@ function openAddMov(prefill){
       }
       // Aplica prefill se veio do quick entry
       if (prefill?.valor && $('mv-valor')) $('mv-valor').value = prefill.valor;
-      if (prefill?.desc  && $('mv-col2'))  $('mv-col2').value  = prefill.desc;
+      if (prefill?.desc) { const f = $(qeTextFieldId(tipo)); if (f) f.value = prefill.desc; }
     });
   }
 }
