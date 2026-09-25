@@ -451,6 +451,13 @@ let CATEGORIAS_RECEITA = ['Vencimentos','Apoios','Outros','Reembolsos'];
 let CODIGOS_PAGAMENTO  = ['R','MB','TB','PS','SR','DD','CC'];
 let categoriasLoaded   = false;
 
+// Sugestões de descrição por categoria, mostradas como chips na Entrada
+// rápida. Categorias sem entrada aqui não mostram sugestões.
+const QUICK_DESC_SUGGESTIONS = {
+  'Supermercados': ['PD', 'Lidl', 'Continente', 'Aldi'],
+  'Transportes':   ['Carregamento Tesla'],
+};
+
 function loadCategorias(){
   if (categoriasLoaded) return Promise.resolve();
   return fetch(API() + '&action=despesasCategorias')
@@ -581,9 +588,11 @@ function modalMovHTML(s){
 
 // ── Entrada rápida ───────────────────────────────────────────
 let _qeTipo = 'despesa';
+let _qeCat  = 'Supermercados';
 function openQuickEntry(){
   if (document.getElementById('quick-modal')) return;
   _qeTipo = 'despesa';
+  _qeCat  = 'Supermercados';
   document.body.insertAdjacentHTML('beforeend', `
   <div id="quick-modal" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;background:rgba(0,0,0,0.6)">
     <div style="background:var(--surface);border-radius:20px 20px 0 0;width:100%;padding:20px 16px calc(20px + env(safe-area-inset-bottom))">
@@ -602,6 +611,10 @@ function openQuickEntry(){
       </div>
       <input id="qe-desc" type="text" placeholder="Descrição (opcional)"
         style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;font-family:inherit;margin-bottom:12px">
+      <div id="qe-cat-section" style="margin-bottom:14px">
+        <div id="qe-cat-chips" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px;-webkit-overflow-scrolling:touch"></div>
+        <div id="qe-sugg-chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
       <div style="display:flex;gap:8px;margin-bottom:16px">
         <button onclick="qeSetTipo('despesa')" id="qe-btn-desp"
           style="flex:1;padding:10px;border-radius:10px;border:2px solid #FF6B5E;background:rgba(255,107,94,0.15);color:#FF6B5E;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit">
@@ -623,7 +636,47 @@ function openQuickEntry(){
       </button>
     </div>
   </div>`);
+  qeRenderCatChips();
+  qeRenderSuggChips();
+  if (!categoriasLoaded) loadCategorias().then(qeRenderCatChips);
   setTimeout(() => { const el = document.getElementById('qe-valor'); if(el) el.focus(); }, 100);
+}
+
+// Chips de categoria — lista completa de CATEGORIAS_DESPESA, com
+// "Supermercados" seleccionada por defeito (categoria onde se gasta mais).
+function qeRenderCatChips(){
+  const box = document.getElementById('qe-cat-chips');
+  if (!box) return;
+  box.innerHTML = CATEGORIAS_DESPESA.map(c => `
+    <button onclick="qeSetCat('${c.replace(/'/g, "\\'")}')"
+      style="flex:0 0 auto;padding:7px 13px;border-radius:20px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;
+      border:1px solid ${c === _qeCat ? 'var(--gold)' : 'var(--border)'};
+      background:${c === _qeCat ? 'rgba(210,161,58,0.18)' : 'var(--surface2)'};
+      color:${c === _qeCat ? 'var(--gold-light)' : 'var(--muted)'}">${c}</button>
+  `).join('');
+}
+
+// Chips de descrição sugerida — dependem da categoria seleccionada.
+function qeRenderSuggChips(){
+  const box = document.getElementById('qe-sugg-chips');
+  if (!box) return;
+  const opts = QUICK_DESC_SUGGESTIONS[_qeCat] || [];
+  box.innerHTML = opts.map(o => `
+    <button onclick="qeFillDesc('${o.replace(/'/g, "\\'")}')"
+      style="flex:0 0 auto;padding:6px 11px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;
+      border:1px solid var(--border);background:var(--surface2);color:var(--text)">${o}</button>
+  `).join('');
+}
+
+function qeSetCat(cat){
+  _qeCat = cat;
+  qeRenderCatChips();
+  qeRenderSuggChips();
+}
+
+function qeFillDesc(text){
+  const el = document.getElementById('qe-desc');
+  if (el) el.value = text;
 }
 
 function qeSetTipo(tipo){
@@ -642,6 +695,8 @@ function qeSetTipo(tipo){
       el.style.border = '1px solid rgba(255,255,255,0.08)'; el.style.background = 'var(--surface2)'; el.style.color = 'var(--muted)';
     }
   });
+  const catSection = document.getElementById('qe-cat-section');
+  if (catSection) catSection.style.display = (tipo === 'despesa') ? 'block' : 'none';
 }
 
 function submitQuickEntry(){
@@ -650,7 +705,12 @@ function submitQuickEntry(){
   const msg   = document.getElementById('qe-msg');
   if (!valor || Number(valor) <= 0){ msg.textContent = 'Indica um valor.'; return; }
   document.getElementById('quick-modal').remove();
-  openAddMov({ valor, desc, tipo: _qeTipo });
+  const prefill = { valor, desc, tipo: _qeTipo };
+  if (_qeTipo === 'despesa') {
+    prefill.cat = _qeCat;   // categoria escolhida nos chips
+    prefill.pagamento = 'R'; // pagamento por defeito na entrada rápida
+  }
+  openAddMov(prefill);
 }
 
 // Devolve 'mv-col1' ou 'mv-col2' — o campo de texto livre para este tipo
@@ -663,30 +723,29 @@ function qeTextFieldId(tipo){
 
 function openAddMov(prefill){
   document.body.insertAdjacentHTML('beforeend', modalMovHTML(null));
-  // Força selects a começar vazios (browser selecciona o primeiro por defeito)
+
+  const applyPrefill = () => {
+    if (!prefill) return;
+    if (prefill.valor && $('mv-valor')) $('mv-valor').value = prefill.valor;
+    if (prefill.desc)      { const f = $(qeTextFieldId(prefill.tipo || 'despesa')); if (f) f.value = prefill.desc; }
+    if (prefill.cat       && $('mv-col1'))      $('mv-col1').value = prefill.cat;
+    if (prefill.pagamento && $('mv-pagamento')) $('mv-pagamento').value = prefill.pagamento;
+  };
+
+  // Segurança extra: força os selects a começar vazios, excepto os que o
+  // prefill vai preencher a seguir (evita o browser escolher a 1ª opção).
   setTimeout(() => {
-    ['mv-col1','mv-col2','mv-pagamento'].forEach(id => {
-      const el = $(id);
-      if (el && !el.value) el.value = '';
-      else if (el && el.querySelector('option[value=""]')) {
-        // só força vazio se não há valor pré-definido
-        if (!prefill || (id === 'mv-col1' && !prefill.col1) || (id === 'mv-pagamento')) {
-          el.value = '';
-        }
-      }
-    });
+    if (!(prefill && prefill.cat))       { const el = $('mv-col1');      if (el && el.tagName === 'SELECT') el.value = ''; }
+    if (!(prefill && prefill.pagamento)) { const el = $('mv-pagamento'); if (el) el.value = ''; }
   }, 10);
+
   if (prefill) {
     setTimeout(() => {
-      if (prefill.valor && $('mv-valor')) $('mv-valor').value = prefill.valor;
-      if (prefill.desc) { const f = $(qeTextFieldId(prefill.tipo || 'despesa')); if (f) f.value = prefill.desc; }
+      applyPrefill();
       if (prefill.tipo) {
         const t = prefill.tipo.toLowerCase();
         if ($('mv-tipo')) { $('mv-tipo').value = t; updateMovFields(); }
-        setTimeout(() => {
-          if (prefill.valor && $('mv-valor')) $('mv-valor').value = prefill.valor;
-          if (prefill.desc) { const f = $(qeTextFieldId(t)); if (f) f.value = prefill.desc; }
-        }, 50);
+        setTimeout(applyPrefill, 50);
       }
     }, 50);
   }
@@ -717,9 +776,8 @@ function openAddMov(prefill){
           cfg.pagamento.options.map(o => `<option value="${o}"${o===cur?' selected':''}>${o}</option>`).join('');
         if (!cur) pag.value = '';
       }
-      // Aplica prefill se veio do quick entry
-      if (prefill?.valor && $('mv-valor')) $('mv-valor').value = prefill.valor;
-      if (prefill?.desc) { const f = $(qeTextFieldId(tipo)); if (f) f.value = prefill.desc; }
+      // Aplica prefill (incluindo cat/pagamento) já com as opções actualizadas
+      applyPrefill();
     });
   }
 }
