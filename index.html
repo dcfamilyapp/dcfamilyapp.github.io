@@ -483,11 +483,13 @@ body.drawer-open #drawer{ transform:translateX(0); }
         </label>
       </div>
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted2);margin-bottom:8px">Threshold</div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:6px">
+        <button onclick="setThreshold('${asset}',2)"  id="al-${asset}-thr-2"  class="thr-btn">2%</button>
         <button onclick="setThreshold('${asset}',5)"  id="al-${asset}-thr-5"  class="thr-btn">5%</button>
         <button onclick="setThreshold('${asset}',10)" id="al-${asset}-thr-10" class="thr-btn">10%</button>
         <button onclick="setThreshold('${asset}',15)" id="al-${asset}-thr-15" class="thr-btn">15%</button>
       </div>
+      <div id="al-${asset}-ref-info" style="font-size:11px;color:var(--muted2);margin-top:10px"></div>
     </div>`;
   }
 
@@ -501,7 +503,7 @@ body.drawer-open #drawer{ transform:translateX(0); }
           <button onclick="closeAlertas()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
         </div>
         <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.5">
-          Recebe uma notificação push quando o preço actual de um ativo sobe ou desce além do teu preço médio de compra.
+          Recebe uma notificação push quando o preço sobe ou desce X% face ao preço de ontem. A referência atualiza-se todos os dias.
         </p>
         ${alertCardHTML('sp500','S&amp;P 500','📈')}
         ${alertCardHTML('btc','Bitcoin','₿')}
@@ -547,10 +549,14 @@ body.drawer-open #drawer{ transform:translateX(0); }
       const cb = document.getElementById('al-' + asset + '-enabled');
       if (cb) cb.checked = cfg.enabled;
       updateAlertToggle(asset);
-      [5,10,15].forEach(t => {
+      [2,5,10,15].forEach(t => {
         const btn = document.getElementById('al-' + asset + '-thr-' + t);
         if (btn) btn.classList.toggle('active', cfg.thresholds.includes(t));
       });
+      const info = document.getElementById('al-' + asset + '-ref-info');
+      if (info) info.textContent = cfg.refPrice
+        ? 'Ontem: €' + cfg.refPrice.toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2})
+        : 'Referência pronta amanhã.';
     });
   }
 
@@ -622,7 +628,7 @@ body.drawer-open #drawer{ transform:translateX(0); }
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-family:'DM Mono',monospace;font-size:12px;color:${isUp?'var(--mint)':'var(--coral)'}">€${h.currentPrice.toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-          <div style="font-size:10px;color:var(--muted2)">média €${h.avgPrice.toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+          <div style="font-size:10px;color:var(--muted2)">ontem €${(h.refPrice ?? h.avgPrice ?? 0).toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
         </div>
       </div>`;
     }).join('');
