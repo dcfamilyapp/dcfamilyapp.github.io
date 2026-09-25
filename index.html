@@ -247,6 +247,13 @@ body.drawer-open #drawer{ transform:translateX(0); }
       Garantias
     </button>
 
+    <button class="drawer-item" id="nav-resumo-semanal" type="button">
+      <div class="drawer-item-icon" style="background:rgba(210,161,58,0.15);color:#D2A13A">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>
+      </div>
+      Resumo semanal
+    </button>
+
     <button id="drawer-push-row" class="drawer-item" type="button" style="display:none">
       <div class="drawer-item-icon" style="background:rgba(251,191,36,0.15);color:#FBB724">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -387,6 +394,58 @@ body.drawer-open #drawer{ transform:translateX(0); }
     document.getElementById('debug-panel').style.display = 'none';
   }
 
+  // ── Resumo semanal ─────────────────────────────────────────
+  const eur = v => (v<0?'-':'')+'€'+Math.abs(v).toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  function openResumoSemanal(){
+    if (document.getElementById('dm-resumo')) return;
+    document.body.insertAdjacentHTML('beforeend', `
+    <div id="dm-resumo" style="position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.7);display:flex;align-items:flex-end">
+      <div style="background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:20px 16px calc(20px + env(safe-area-inset-bottom))">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-size:16px;font-weight:700">📋 Resumo semanal</div>
+          <button onclick="closeResumoSemanal()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
+        </div>
+        <div id="dm-resumo-body" style="text-align:center;padding:24px 0;color:var(--muted);font-size:14px">A carregar…</div>
+      </div>
+    </div>`);
+    const pin = Auth.getStoredPin() || '';
+    fetch(Auth.API_URL + '?pin=' + encodeURIComponent(pin) + '&action=resumoSemanal')
+      .then(r => r.json()).then(d => {
+        const body = document.getElementById('dm-resumo-body');
+        if (!body) return; // modal já foi fechado
+        if (!d.ok) { body.textContent = 'Não foi possível carregar o resumo.'; return; }
+        const catRows = (d.categorias||[]).map(c => `
+          <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;color:var(--muted)">
+            <span>${c.cat}</span><span>${eur(c.val)}</span>
+          </div>`).join('');
+        body.style.textAlign = 'left';
+        body.style.padding = '0';
+        body.innerHTML = `
+          <div style="font-size:12px;color:var(--muted);margin-bottom:16px">${d.weekLabel} · esta semana até hoje</div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px">
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">Despesas</div>
+            <div style="font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:#FF6B5E">${eur(d.totalDespesas)}</div>
+          </div>
+          ${catRows ? `<div style="margin-bottom:16px">${catRows}</div>` : `<div style="font-size:13px;color:var(--muted);margin-bottom:16px">Sem despesas esta semana</div>`}
+          ${d.numCarreg > 0 ? `
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px">
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">⚡ Carregamentos</div>
+            <div style="font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:var(--gold)">${eur(d.totalCarreg)}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">${d.numCarreg} carregamento${d.numCarreg>1?'s':''} · ${d.kwhtotal.toFixed(1)} kWh</div>
+          </div>` : ''}
+          ${d.portfolioLine ? `<div style="font-size:13px;color:var(--muted);text-align:center;margin-top:8px">📈 ${d.portfolioLine}</div>` : ''}
+        `;
+      }).catch(() => {
+        const body = document.getElementById('dm-resumo-body');
+        if (body) body.textContent = 'Erro ao carregar o resumo.';
+      });
+  }
+  function closeResumoSemanal(){
+    const m = document.getElementById('dm-resumo');
+    if (m) m.remove();
+  }
+
   (function(){
     let startX = 0;
     const drawer = document.getElementById('drawer');
@@ -444,6 +503,14 @@ body.drawer-open #drawer{ transform:translateX(0); }
       }, 260);
     });
 
+    document.getElementById('nav-resumo-semanal').addEventListener('click', () => {
+      closeDrawer();
+      setTimeout(()=>{
+        document.body.classList.add('modal-open');
+        openResumoSemanal();
+      }, 260);
+    });
+
     document.getElementById('drawer-push-row').addEventListener('click', () => {
       closeDrawer();
       setTimeout(enablePush, 260);
@@ -493,7 +560,7 @@ body.drawer-open #drawer{ transform:translateX(0); }
     if(ticketNum) Tickets.openTicket(parseInt(ticketNum, 10));
 
     new MutationObserver(()=>{
-      if(!document.getElementById('dm-ticket') && !document.getElementById('dm-gar')){
+      if(!document.getElementById('dm-ticket') && !document.getElementById('dm-gar') && !document.getElementById('dm-resumo')){
         document.body.classList.remove('modal-open');
       }
     }).observe(document.body, { childList:true, subtree:false });
