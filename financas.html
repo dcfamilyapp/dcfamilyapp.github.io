@@ -780,6 +780,10 @@ function submitQuickEntry(){
     prefill.pagamento = 'R'; // pagamento por defeito na entrada rápida
   } else if (_qeTipo === 'receita' && _qeFonteVenc) {
     prefill.cat = 'Vencimentos'; // modo "Vencimento rápido"
+    // Manda também os valores em bruto, para o backend gravar a FÓRMULA
+    // na folha (ex.: =1640+224,4) em vez de só o total já somado.
+    prefill.ordenado = parseFloat((document.getElementById('qe-venc-ordenado').value || '0').replace(',', '.')) || 0;
+    prefill.subsidio = parseFloat((document.getElementById('qe-venc-subsidio').value || '0').replace(',', '.')) || 0;
   }
   openAddMov(prefill);
 }
@@ -801,8 +805,20 @@ function qeTextFieldId(tipo){
   return 'mv-col2';
 }
 
+// Ordenado/Subsídio em bruto do "Vencimento rápido", para o backend gravar
+// a fórmula na folha em vez do total já somado. Só válidos para o próximo
+// "Adicionar movimento" — qualquer edição manual do Valor invalida-os.
+let _movOrdenado = null, _movSubsidio = null;
+
 function openAddMov(prefill){
+  _movOrdenado = null; _movSubsidio = null;
   document.body.insertAdjacentHTML('beforeend', modalMovHTML(null));
+  // Se o utilizador mexer no Valor à mão, deixa de fazer sentido gravar a
+  // fórmula ordenado+subsídio — passa a gravar o número que ele puser.
+  const fieldsEl = $('mv-fields');
+  if (fieldsEl) fieldsEl.addEventListener('input', (e) => {
+    if (e.target && e.target.id === 'mv-valor') { _movOrdenado = null; _movSubsidio = null; }
+  });
 
   const applyPrefill = () => {
     if (!prefill) return;
@@ -810,6 +826,10 @@ function openAddMov(prefill){
     if (prefill.desc)      { const f = $(qeTextFieldId(prefill.tipo || 'despesa')); if (f) f.value = prefill.desc; }
     if (prefill.cat)       { const f = $(qeCatFieldId(prefill.tipo || 'despesa')); if (f) f.value = prefill.cat; }
     if (prefill.pagamento && $('mv-pagamento')) $('mv-pagamento').value = prefill.pagamento;
+    if (prefill.ordenado != null && prefill.subsidio != null) {
+      _movOrdenado = prefill.ordenado;
+      _movSubsidio = prefill.subsidio;
+    }
   };
 
   // Segurança extra: força os selects a começar vazios, excepto os que o
@@ -887,6 +907,10 @@ async function submitMov(isEdit){
   if (tipo === 'despesa' && (!pagamento || pagamento === '')) { msg.textContent='Indica o pagamento.'; restore(); return; }
 
   const payload = { action: isEdit?'despesasEdit':'despesasAdd', pin:Auth.getStoredPin()||'', tipo, data, valor, col1, col2, pagamento };
+  if (!isEdit && tipo === 'receita' && _movOrdenado != null && _movSubsidio != null) {
+    payload.ordenado = _movOrdenado;
+    payload.subsidio = _movSubsidio;
+  }
   if (isEdit) payload.row = parseInt($('mv-row').value);
 
   try {
