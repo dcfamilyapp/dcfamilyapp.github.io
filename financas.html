@@ -773,7 +773,7 @@ function submitQuickEntry(){
   const desc  = document.getElementById('qe-desc').value.trim();
   const msg   = document.getElementById('qe-msg');
   if (!valor || Number(valor) <= 0){ msg.textContent = 'Indica um valor.'; return; }
-  document.getElementById('quick-modal').remove();
+
   const prefill = { valor, desc, tipo: _qeTipo };
   if (_qeTipo === 'despesa') {
     prefill.cat = _qeCat;   // categoria escolhida nos chips
@@ -782,9 +782,13 @@ function submitQuickEntry(){
     prefill.cat = 'Vencimentos'; // modo "Vencimento rápido"
     // Manda também os valores em bruto, para o backend gravar a FÓRMULA
     // na folha (ex.: =1640+224,4) em vez de só o total já somado.
+    // IMPORTANTE: ler estes campos ANTES de remover o modal — depois de
+    // removido, os elementos deixam de existir no DOM.
     prefill.ordenado = parseFloat((document.getElementById('qe-venc-ordenado').value || '0').replace(',', '.')) || 0;
     prefill.subsidio = parseFloat((document.getElementById('qe-venc-subsidio').value || '0').replace(',', '.')) || 0;
   }
+
+  document.getElementById('quick-modal').remove();
   openAddMov(prefill);
 }
 
