@@ -589,10 +589,12 @@ function modalMovHTML(s){
 // ── Entrada rápida ───────────────────────────────────────────
 let _qeTipo = 'despesa';
 let _qeCat  = 'Supermercados';
+let _qeFonteVenc = null; // 'Experis' | 'Adecco' | null — modo vencimento rápido (receita)
 function openQuickEntry(){
   if (document.getElementById('quick-modal')) return;
   _qeTipo = 'despesa';
   _qeCat  = 'Supermercados';
+  _qeFonteVenc = null;
   document.body.insertAdjacentHTML('beforeend', `
   <div id="quick-modal" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;background:rgba(0,0,0,0.6)">
     <div style="background:var(--surface);border-radius:20px 20px 0 0;width:100%;padding:20px 16px calc(20px + env(safe-area-inset-bottom))">
@@ -614,6 +616,31 @@ function openQuickEntry(){
       <div id="qe-cat-section" style="margin-bottom:14px">
         <div id="qe-cat-chips" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px;-webkit-overflow-scrolling:touch"></div>
         <div id="qe-sugg-chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
+      <div id="qe-venc-section" style="display:none;margin-bottom:14px">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted2);margin-bottom:8px">Vencimento rápido</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <button onclick="qeSetFonteVenc('Experis')" id="qe-venc-experis"
+            style="flex:1;padding:9px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid var(--border);background:var(--surface2);color:var(--muted)">
+            Experis
+          </button>
+          <button onclick="qeSetFonteVenc('Adecco')" id="qe-venc-adecco"
+            style="flex:1;padding:9px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid var(--border);background:var(--surface2);color:var(--muted)">
+            Adecco
+          </button>
+        </div>
+        <div id="qe-venc-inputs" style="display:none;gap:8px">
+          <div style="flex:1">
+            <div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Ordenado (€)</div>
+            <input id="qe-venc-ordenado" type="number" inputmode="decimal" step="0.01" placeholder="0,00" oninput="qeCalcVenc()"
+              style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;font-family:inherit;box-sizing:border-box">
+          </div>
+          <div style="flex:1">
+            <div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Subsídio (€)</div>
+            <input id="qe-venc-subsidio" type="number" inputmode="decimal" step="0.01" placeholder="0,00" oninput="qeCalcVenc()"
+              style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;font-family:inherit;box-sizing:border-box">
+          </div>
+        </div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:16px">
         <button onclick="qeSetTipo('despesa')" id="qe-btn-desp"
@@ -679,6 +706,45 @@ function qeFillDesc(text){
   if (el) el.value = text;
 }
 
+// Alterna Experis/Adecco no "Vencimento rápido". Ao escolher uma fonte,
+// mostra os campos Ordenado/Subsídio e preenche a Descrição (= Fonte);
+// ao desligar, limpa tudo outra vez.
+function qeSetFonteVenc(fonte){
+  _qeFonteVenc = (_qeFonteVenc === fonte) ? null : fonte;
+  ['Experis','Adecco'].forEach(f => {
+    const btn = document.getElementById('qe-venc-' + f.toLowerCase());
+    if (!btn) return;
+    const active = f === _qeFonteVenc;
+    btn.style.border = active ? '2px solid #34D399' : '1px solid var(--border)';
+    btn.style.background = active ? 'rgba(52,211,153,0.15)' : 'var(--surface2)';
+    btn.style.color = active ? '#34D399' : 'var(--muted)';
+  });
+  const inputs = document.getElementById('qe-venc-inputs');
+  const desc   = document.getElementById('qe-desc');
+  const valor  = document.getElementById('qe-valor');
+  if (_qeFonteVenc) {
+    if (inputs) inputs.style.display = 'flex';
+    if (desc) desc.value = _qeFonteVenc;
+    if (valor) valor.readOnly = true;
+    qeCalcVenc();
+  } else {
+    if (inputs) inputs.style.display = 'none';
+    if (desc && (desc.value === 'Experis' || desc.value === 'Adecco')) desc.value = '';
+    if (valor) { valor.readOnly = false; valor.value = ''; }
+    const o = document.getElementById('qe-venc-ordenado'), s = document.getElementById('qe-venc-subsidio');
+    if (o) o.value = ''; if (s) s.value = '';
+  }
+}
+
+// Ordenado + Subsídio → Valor (a mesma soma que fazias na folha à mão).
+function qeCalcVenc(){
+  const o = parseFloat((document.getElementById('qe-venc-ordenado').value || '0').replace(',', '.')) || 0;
+  const s = parseFloat((document.getElementById('qe-venc-subsidio').value || '0').replace(',', '.')) || 0;
+  const total = o + s;
+  const valorEl = document.getElementById('qe-valor');
+  if (valorEl) valorEl.value = total ? total.toFixed(2) : '';
+}
+
 function qeSetTipo(tipo){
   _qeTipo = tipo;
   const styles = {
@@ -697,6 +763,9 @@ function qeSetTipo(tipo){
   });
   const catSection = document.getElementById('qe-cat-section');
   if (catSection) catSection.style.display = (tipo === 'despesa') ? 'block' : 'none';
+  const vencSection = document.getElementById('qe-venc-section');
+  if (vencSection) vencSection.style.display = (tipo === 'receita') ? 'block' : 'none';
+  if (tipo !== 'receita' && _qeFonteVenc) qeSetFonteVenc(_qeFonteVenc); // desliga e limpa
 }
 
 function submitQuickEntry(){
@@ -709,8 +778,19 @@ function submitQuickEntry(){
   if (_qeTipo === 'despesa') {
     prefill.cat = _qeCat;   // categoria escolhida nos chips
     prefill.pagamento = 'R'; // pagamento por defeito na entrada rápida
+  } else if (_qeTipo === 'receita' && _qeFonteVenc) {
+    prefill.cat = 'Vencimentos'; // modo "Vencimento rápido"
   }
   openAddMov(prefill);
+}
+
+// Devolve o id do select de Categoria para este tipo — col1 na despesa,
+// col2 na receita (os dois tipos com "Categoria" no quick entry).
+function qeCatFieldId(tipo){
+  const cfg = movFieldsConfig(tipo);
+  if (cfg.col1 && cfg.col1.label === 'Categoria') return 'mv-col1';
+  if (cfg.col2 && cfg.col2.label === 'Categoria') return 'mv-col2';
+  return null;
 }
 
 // Devolve 'mv-col1' ou 'mv-col2' — o campo de texto livre para este tipo
@@ -728,7 +808,7 @@ function openAddMov(prefill){
     if (!prefill) return;
     if (prefill.valor && $('mv-valor')) $('mv-valor').value = prefill.valor;
     if (prefill.desc)      { const f = $(qeTextFieldId(prefill.tipo || 'despesa')); if (f) f.value = prefill.desc; }
-    if (prefill.cat       && $('mv-col1'))      $('mv-col1').value = prefill.cat;
+    if (prefill.cat)       { const f = $(qeCatFieldId(prefill.tipo || 'despesa')); if (f) f.value = prefill.cat; }
     if (prefill.pagamento && $('mv-pagamento')) $('mv-pagamento').value = prefill.pagamento;
   };
 
