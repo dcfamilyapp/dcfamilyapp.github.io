@@ -144,7 +144,7 @@ body{
     </div>
 
     <div class="card">
-      <div class="card-title">GASTO MENSAL (€)</div>
+      <div class="card-title">GASTO E kWh MENSAL</div>
       <div class="chart-wrap"><canvas id="chart-mensal"></canvas></div>
     </div>
 
@@ -238,19 +238,24 @@ function onData(d){
 
 function renderChart(monthly){
   const labels=monthly.map(m=>m.label);
-  const ds=[{label:'Gasto',data:monthly.map(m=>m.gasto),backgroundColor:'#F0A93Acc',borderRadius:4}];
+  const ds=[
+    {label:'Gasto',type:'bar',data:monthly.map(m=>m.gasto),backgroundColor:'#F0A93Acc',borderRadius:4,yAxisID:'y'},
+    {label:'kWh',type:'line',data:monthly.map(m=>m.kwh),borderColor:'#5B8DEF',backgroundColor:'#5B8DEF',
+      borderWidth:2,pointRadius:3,pointBackgroundColor:'#5B8DEF',tension:0.3,yAxisID:'y1'},
+  ];
   dc('chart-mensal');
   ch['chart-mensal']=new Chart($('chart-mensal'),{type:'bar',data:{labels,datasets:ds},options:{
     responsive:true,maintainAspectRatio:false,
     scales:{
       x:{ticks:{color:'#8B95A5',font:{family:"'DM Sans'",size:9},maxRotation:55},grid:{display:false}},
-      y:{ticks:{color:'#8B95A5',font:{family:"'DM Mono'",size:9},callback:v=>'€'+v},grid:{color:'rgba(255,255,255,0.06)'}}
+      y:{position:'left',ticks:{color:'#8B95A5',font:{family:"'DM Mono'",size:9},callback:v=>'€'+v},grid:{color:'rgba(255,255,255,0.06)'}},
+      y1:{position:'right',ticks:{color:'#5B8DEF',font:{family:"'DM Mono'",size:9},callback:v=>v+' kWh'},grid:{display:false}}
     },
     plugins:{
-      legend:{display:false},
+      legend:{display:true,labels:{color:'#8B95A5',font:{family:"'DM Sans'",size:10},boxWidth:10,usePointStyle:true}},
       tooltip:{backgroundColor:'#212938',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,
         titleColor:'#8B95A5',bodyColor:'#F2F4F7',
-        callbacks:{label:c=>' '+eur(c.raw)}}
+        callbacks:{label:c=> c.dataset.label==='Gasto' ? ' '+eur(c.raw) : ' '+c.raw.toLocaleString('pt-PT',{maximumFractionDigits:1})+' kWh'}}
     }
   }});
 }
