@@ -141,6 +141,7 @@ body{
       <div class="kpi"><div class="kpi-label">Total kWh</div><div class="kpi-value" id="kpi-kwh">—</div><div class="kpi-sub">&nbsp;</div></div>
       <div class="kpi"><div class="kpi-label">Custo Médio /kWh</div><div class="kpi-value" id="kpi-custo-kwh">—</div><div class="kpi-sub">&nbsp;</div></div>
       <div class="kpi"><div class="kpi-label">Custo Médio /100km</div><div class="kpi-value" id="kpi-custo-km">—</div><div class="kpi-sub" id="kpi-kms">&nbsp;</div></div>
+      <div class="kpi"><div class="kpi-label">Média Mensal</div><div class="kpi-value" id="kpi-media-kwh">—</div><div class="kpi-sub">&nbsp;</div></div>
     </div>
 
     <div class="card">
@@ -230,6 +231,14 @@ function onData(d){
   $('kpi-custo-kwh').textContent='€'+d.custoMedioKwh.toFixed(3);
   $('kpi-custo-km').textContent='€'+d.custoMedioKm.toFixed(2);
   $('kpi-kms').textContent=Math.round(d.totalKms).toLocaleString('pt-PT')+' km percorridos';
+
+  // Média mensal de kWh — a partir dos mesmos meses do gráfico (só meses
+  // com carregamentos registados, para não distorcer com meses vazios).
+  const mesesComDados = d.monthly.filter(m => m.kwh > 0).length;
+  const mediaMensalKwh = mesesComDados > 0 ? d.totalKwh / mesesComDados : 0;
+  $('kpi-media-kwh').textContent = mediaMensalKwh
+    ? mediaMensalKwh.toLocaleString('pt-PT',{minimumFractionDigits:1,maximumFractionDigits:1})+' kWh'
+    : '—';
 
   renderChart(d.monthly);
   renderOperadores(d.operadores);
