@@ -632,12 +632,12 @@ function openQuickEntry(){
         <div id="qe-venc-inputs" style="display:none;gap:8px">
           <div style="flex:1">
             <div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Ordenado (€)</div>
-            <input id="qe-venc-ordenado" type="number" inputmode="decimal" step="0.01" placeholder="0,00" oninput="qeCalcVenc()"
+            <input id="qe-venc-ordenado" type="text" inputmode="decimal" placeholder="0,00" oninput="qeCalcVenc()"
               style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;font-family:inherit;box-sizing:border-box">
           </div>
           <div style="flex:1">
             <div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Subsídio (€)</div>
-            <input id="qe-venc-subsidio" type="number" inputmode="decimal" step="0.01" placeholder="0,00" oninput="qeCalcVenc()"
+            <input id="qe-venc-subsidio" type="text" inputmode="decimal" placeholder="0,00" oninput="qeCalcVenc()"
               style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;font-family:inherit;box-sizing:border-box">
           </div>
         </div>
@@ -725,12 +725,13 @@ function qeSetFonteVenc(fonte){
   if (_qeFonteVenc) {
     if (inputs) inputs.style.display = 'flex';
     if (desc) desc.value = _qeFonteVenc;
-    if (valor) valor.readOnly = true;
+    // O Valor NÃO fica bloqueado — podes sempre escrever o montante à mão
+    // aqui; Ordenado/Subsídio são só um atalho opcional para o preencher.
     qeCalcVenc();
   } else {
     if (inputs) inputs.style.display = 'none';
     if (desc && (desc.value === 'Experis' || desc.value === 'Adecco')) desc.value = '';
-    if (valor) { valor.readOnly = false; valor.value = ''; }
+    if (valor) valor.value = '';
     const o = document.getElementById('qe-venc-ordenado'), s = document.getElementById('qe-venc-subsidio');
     if (o) o.value = ''; if (s) s.value = '';
   }
