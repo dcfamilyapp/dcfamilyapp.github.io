@@ -1,7 +1,7 @@
 /* ══════════════════════════════════════════════════════════════
    DC Family — painel de Garantias
-   Lista, adiciona (com upload de fatura para o Drive) e elimina —
-   tudo a partir de um modal, tal como os Tickets.
+   Lista, adiciona (com upload de fatura para o Drive), edita e
+   elimina — tudo a partir de um modal, tal como os Tickets.
    ══════════════════════════════════════════════════════════════ */
 const Garantias = (() => {
   const CATEGORIAS_GAR = ['Eletrodomésticos','Eletrónica','Automóvel','Casa','Saúde','Outros'];
@@ -26,7 +26,7 @@ const Garantias = (() => {
     if (document.getElementById('dm-gar')) return;
     document.body.insertAdjacentHTML('beforeend', shellHTML());
     document.getElementById('dm-g-close').onclick = close;
-    document.getElementById('dm-g-new').onclick = openAddGarantia;
+    document.getElementById('dm-g-new').onclick = () => openForm(null);
     loadGarantias();
   }
   function close(){ const el = document.getElementById('dm-gar'); if (el) el.remove(); document.body.classList.remove('modal-open'); }
@@ -85,12 +85,12 @@ const Garantias = (() => {
     }).join('');
   }
 
-  // ── Detalhe / eliminar ───────────────────────────────────────
+  // ── Detalhe / editar / eliminar ────────────────────────────────
   function openDetail(g){
     const { cor, label } = estadoCor(g.diasRestantes, g.duracaoAnos);
     document.body.insertAdjacentHTML('beforeend', `
     <div id="dm-g-det" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:flex-end">
-      <div style="background:#12161D;border-radius:20px 20px 0 0;width:100%;padding:20px 16px calc(20px + env(safe-area-inset-bottom))">
+      <div style="background:#12161D;border-radius:20px 20px 0 0;width:100%;max-height:90vh;overflow-y:auto;padding:20px 16px calc(20px + env(safe-area-inset-bottom))">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
           <div style="font-size:16px;font-weight:700;color:#F2F4F7">${g.nome}</div>
           <button onclick="document.getElementById('dm-g-det').remove()" style="background:none;border:none;color:#8B95A5;font-size:22px;cursor:pointer;line-height:1">×</button>
@@ -98,14 +98,21 @@ const Garantias = (() => {
         <div style="font-size:13px;color:#8B95A5;margin-bottom:6px">${g.tipo||'Geral'} · ${g.categoria} · ${g.duracaoAnos} ano${g.duracaoAnos>1?'s':''}</div>
         <div style="font-size:13px;margin-bottom:4px;color:#F2F4F7">Comprado em <strong>${g.dataCompra}</strong></div>
         <div style="font-size:13px;margin-bottom:14px;color:#F2F4F7">Garantia até <strong>${g.dataFim}</strong></div>
-        <div style="font-size:15px;font-weight:700;color:${cor};margin-bottom:20px">${label}</div>
+        <div style="font-size:15px;font-weight:700;color:${cor};margin-bottom:16px">${label}</div>
+        ${g.observacoes ? `<div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8B95A5;margin-bottom:4px">Observações</div>
+        <div style="font-size:13px;color:#F2F4F7;background:#181D26;border-radius:10px;padding:12px;margin-bottom:16px;white-space:pre-wrap">${g.observacoes}</div>` : ''}
         ${g.driveUrl ? `<a href="${g.driveUrl}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;background:#212938;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;color:#F2F4F7;text-decoration:none;margin-bottom:14px;font-size:13px">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
           Ver fatura
         </a>` : '<div style="font-size:13px;color:#5C6576;margin-bottom:14px">Sem fatura anexada</div>'}
-        <button onclick="Garantias._confirmDelete(${g.row},'${g.nome.replace(/'/g,"\\'")}','${g.driveId}')" style="width:100%;padding:14px;border:none;border-radius:12px;background:#FF6B5E;color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit">
-          Eliminar garantia
-        </button>
+        <div style="display:flex;gap:10px">
+          <button onclick="document.getElementById('dm-g-det').remove();Garantias._openEdit(${JSON.stringify(g).replace(/"/g,'&quot;')})" style="flex:1;padding:14px;border:none;border-radius:12px;background:#212938;border:1px solid rgba(255,255,255,0.08);color:#F2F4F7;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit">
+            Editar
+          </button>
+          <button onclick="Garantias._confirmDelete(${g.row},'${g.nome.replace(/'/g,"\\'")}','${g.driveId}')" style="flex:1;padding:14px;border:none;border-radius:12px;background:#FF6B5E;color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit">
+            Eliminar
+          </button>
+        </div>
       </div>
     </div>`);
   }
@@ -126,59 +133,67 @@ const Garantias = (() => {
     } catch(e) { alert('Erro de rede: ' + e.message); }
   }
 
-  // ── Adicionar ────────────────────────────────────────────────
-  function openAddGarantia(){
+  // ── Adicionar / Editar (mesmo formulário) ───────────────────────
+  function openForm(g){
+    const isEdit = !!g;
     const today = new Date().toISOString().slice(0,10);
+    const dataISO = isEdit && g.dataCompra ? g.dataCompra.split('/').reverse().join('-') : today;
+
     document.body.insertAdjacentHTML('beforeend', `
     <div id="dm-g-add" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:flex-end">
       <div style="background:#12161D;border-radius:20px 20px 0 0;width:100%;max-height:90vh;overflow-y:auto;padding:20px 16px calc(20px + env(safe-area-inset-bottom))">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-          <div style="font-size:16px;font-weight:700;color:#F2F4F7">Nova garantia</div>
+          <div style="font-size:16px;font-weight:700;color:#F2F4F7">${isEdit ? 'Editar garantia' : 'Nova garantia'}</div>
           <button onclick="document.getElementById('dm-g-add').remove()" style="background:none;border:none;color:#8B95A5;font-size:22px;cursor:pointer;line-height:1">×</button>
         </div>
 
         <label style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8B95A5">Produto <span style="color:#FF6B5E">*</span></label>
-        <input id="dm-g-nome" type="text" placeholder="ex: Samsung TV 65&quot;" style="${FIELD_STYLE};margin:6px 0 14px">
+        <input id="dm-g-nome" type="text" placeholder="ex: Samsung TV 65&quot;" value="${isEdit ? g.nome.replace(/"/g,'&quot;') : ''}" style="${FIELD_STYLE};margin:6px 0 14px">
 
         <label style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8B95A5">Tipo de garantia</label>
         <select id="dm-g-tipo" style="${FIELD_STYLE};margin:6px 0 14px">
-          ${TIPOS_GAR.map(t=>`<option>${t}</option>`).join('')}
+          ${TIPOS_GAR.map(t=>`<option${isEdit && g.tipo===t ? ' selected' : ''}>${t}</option>`).join('')}
         </select>
 
         <label style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8B95A5">Categoria</label>
         <select id="dm-g-cat" style="${FIELD_STYLE};margin:6px 0 14px">
-          ${CATEGORIAS_GAR.map(c=>`<option>${c}</option>`).join('')}
+          ${CATEGORIAS_GAR.map(c=>`<option${isEdit && g.categoria===c ? ' selected' : ''}>${c}</option>`).join('')}
         </select>
 
         <label style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8B95A5">Data de compra <span style="color:#FF6B5E">*</span></label>
-        <input id="dm-g-data" type="date" value="${today}" style="${FIELD_STYLE};margin:6px 0 14px">
+        <input id="dm-g-data" type="date" value="${dataISO}" style="${FIELD_STYLE};margin:6px 0 14px">
 
         <label style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8B95A5">Duração da garantia <span style="color:#FF6B5E">*</span></label>
         <select id="dm-g-dur" style="${FIELD_STYLE};margin:6px 0 14px">
-          ${DURACOES.map(d=>`<option value="${d}"${d===2?' selected':''}>${d} ano${d>1?'s':''}</option>`).join('')}
+          ${DURACOES.map(d=>`<option value="${d}"${isEdit ? (Number(g.duracaoAnos)===d ? ' selected' : '') : (d===2?' selected':'')}>${d} ano${d>1?'s':''}</option>`).join('')}
         </select>
 
-        <label style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8B95A5">Fatura (foto ou PDF, opcional)</label>
+        <label style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8B95A5">Observações</label>
+        <textarea id="dm-g-obs" rows="3" placeholder="notas, nº de série, loja onde foi comprado..." style="${FIELD_STYLE};margin:6px 0 14px;resize:vertical;font-family:inherit">${isEdit ? (g.observacoes||'') : ''}</textarea>
+
+        <label style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8B95A5">Fatura (foto ou PDF${isEdit ? ', só se quiseres substituir' : ', opcional'})</label>
         <input id="dm-g-file" type="file" accept="image/*,application/pdf" style="${FIELD_STYLE};margin:6px 0 20px;padding:8px">
 
         <div id="dm-g-msg" style="font-size:12.5px;color:#FF6B5E;min-height:16px;margin-bottom:10px;text-align:center"></div>
-        <button onclick="Garantias._submit()" id="dm-g-submit" style="width:100%;padding:14px;border:none;border-radius:12px;background:#D2A13A;color:#1a1305;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit">
-          Adicionar garantia
+        <button onclick="Garantias._submit(${isEdit ? g.row : 'null'})" id="dm-g-submit" style="width:100%;padding:14px;border:none;border-radius:12px;background:#D2A13A;color:#1a1305;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit">
+          ${isEdit ? 'Guardar alterações' : 'Adicionar garantia'}
         </button>
       </div>
     </div>`);
   }
 
-  async function submit(){
+  async function submit(row){
+    const isEdit = !!row;
     const btn=document.getElementById('dm-g-submit'), msg=document.getElementById('dm-g-msg');
     btn.disabled=true; btn.textContent='A guardar...';
-    const restore=()=>{ btn.disabled=false; btn.textContent='Adicionar garantia'; };
+    const restore=()=>{ btn.disabled=false; btn.textContent=isEdit ? 'Guardar alterações' : 'Adicionar garantia'; };
 
     const nome = document.getElementById('dm-g-nome').value.trim();
     const tipo = document.getElementById('dm-g-tipo').value;
     const cat  = document.getElementById('dm-g-cat').value;
     const rawData = document.getElementById('dm-g-data').value;
     const dur  = document.getElementById('dm-g-dur').value;
+    const obs  = document.getElementById('dm-g-obs').value.trim();
     const file = document.getElementById('dm-g-file').files[0];
 
     if (!nome)    { msg.textContent='Indica o nome do produto.'; restore(); return; }
@@ -199,16 +214,18 @@ const Garantias = (() => {
       mimetype = file.type;
     }
 
+    const action = isEdit ? 'garantiasEdit' : 'garantiasAdd';
     const payload = {
-      action: 'garantiasAdd',
+      action,
       pin: Auth.getStoredPin()||'',
-      nome, tipo, categoria: cat, dataCompra, duracaoAnos: dur,
+      nome, tipo, categoria: cat, dataCompra, duracaoAnos: dur, observacoes: obs,
       filename, filedata, mimetype,
     };
+    if (isEdit) payload.row = row;
 
     // Retry até 3 vezes para cobrir uma falha silenciosa pontual do Apps Script.
     async function doPost(attempt){
-      const r = await fetch(Auth.API_URL + '?action=garantiasAdd&pin=' + encodeURIComponent(payload.pin), {
+      const r = await fetch(Auth.API_URL + '?action=' + action + '&pin=' + encodeURIComponent(payload.pin), {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload),
@@ -232,5 +249,5 @@ const Garantias = (() => {
     }
   }
 
-  return { open, close, _openDetail: openDetail, _confirmDelete: confirmDelete, _submit: submit };
+  return { open, close, _openDetail: openDetail, _openEdit: openForm, _confirmDelete: confirmDelete, _submit: submit };
 })();
