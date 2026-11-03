@@ -561,8 +561,8 @@ function modalBTCHTML(t){
   </div>`;
 }
 
-function openAddBTC(){ document.body.insertAdjacentHTML('beforeend', modalBTCHTML(null)); }
-function openEditBTC(t){ document.body.insertAdjacentHTML('beforeend', modalBTCHTML(t)); }
+function openAddBTC(){ if ($('btc-modal')) return; document.body.insertAdjacentHTML('beforeend', modalBTCHTML(null)); }
+function openEditBTC(t){ if ($('btc-modal')) return; document.body.insertAdjacentHTML('beforeend', modalBTCHTML(t)); }
 function closeBTCModal(){ const m=$('btc-modal'); if(m) m.remove(); }
 
 async function submitBTC(isEdit){
@@ -724,8 +724,29 @@ function modalXTBHTML(t){
   </div>`;
 }
 
-function openAddXTB(){ loadPortfolioCategorias().then(() => document.body.insertAdjacentHTML('beforeend', modalXTBHTML(null))); }
-function openEditXTB(t){ loadPortfolioCategorias().then(() => document.body.insertAdjacentHTML('beforeend', modalXTBHTML(t))); }
+// O modal abre já com as listas por defeito (sem esperar pelo fetch), para
+// o botão "+ Adicionar" reagir de imediato — um ecrã que não muda logo ao
+// toque convida a um segundo toque, e esse segundo toque criava um SEGUNDO
+// modal sobreposto ao primeiro (mesmos ids), pelo que o formulário visível
+// deixava de corresponder aos campos realmente lidos no submit. Quando as
+// categorias chegam da rede, atualiza-se apenas as opções dos <select>.
+function refreshXTBSelectOptions(v){
+  const typeEl = $('xtb-type'), tickerEl = $('xtb-ticker'), instrEl = $('xtb-instrument'), ownerEl = $('xtb-owner');
+  if (typeEl)   typeEl.innerHTML   = XTB_TYPES.map(o=>`<option${(!v||v.type===o)?' selected':''}>${o}</option>`).join('');
+  if (tickerEl) tickerEl.innerHTML = XTB_TICKERS.map(o=>`<option${(!v||v.ticker===o)?' selected':''}>${o}</option>`).join('');
+  if (instrEl)  instrEl.innerHTML  = XTB_INSTRUMENTS.map(o=>`<option${(!v||v.instrument===o)?' selected':''}>${o}</option>`).join('');
+  if (ownerEl)  ownerEl.innerHTML  = XTB_OWNERS.map(o=>`<option${v&&v.owner===o?' selected':''}>${o}</option>`).join('');
+}
+function openAddXTB(){
+  if ($('xtb-modal')) return; // já está aberto — evita duplicar o formulário
+  document.body.insertAdjacentHTML('beforeend', modalXTBHTML(null));
+  loadPortfolioCategorias().then(() => refreshXTBSelectOptions(null));
+}
+function openEditXTB(t){
+  if ($('xtb-modal')) return;
+  document.body.insertAdjacentHTML('beforeend', modalXTBHTML(t));
+  loadPortfolioCategorias().then(() => refreshXTBSelectOptions(t));
+}
 function closeXTBModal(){ const m=$('xtb-modal'); if(m) m.remove(); }
 
 async function submitXTB(isEdit){
