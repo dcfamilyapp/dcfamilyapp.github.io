@@ -77,22 +77,28 @@ body{
 .skel.tall{height:220px}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-/* ── KPI ── */
-.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;position:relative;overflow:hidden;min-width:0}
-.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--amber)}
-.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px}
-.kpi-value{font-family:'DM Mono',monospace;font-size:clamp(16px,4.4vw,21px);font-weight:500;letter-spacing:-.2px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kpi-sub{font-size:11px;color:var(--muted);margin-top:5px;min-height:14px}
+/* ── Hero + stats ── */
+.hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px 20px;margin-bottom:12px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--amber)}
+.hero-label{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px}
+.hero-value{font-family:'DM Mono',monospace;font-weight:500;font-size:clamp(30px,9vw,40px);letter-spacing:-.03em;line-height:1}
+.hero-sub{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;margin-top:9px;font-size:13px;color:var(--muted)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat-chip{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;min-width:0}
+.stat-chip-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px}
+.stat-chip-value{font-family:'DM Mono',monospace;font-size:clamp(14px,4vw,16px);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ── Card ── */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
 .card-title{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:14px}
 
 /* ── Charts ── */
-.chart-wrap{position:relative;width:100%;height:280px}
+.chart-wrap{position:relative;width:100%;height:240px}
 
 /* ── Tabela de operadores ── */
+.op-bar{display:flex;width:100%;height:12px;border-radius:7px;overflow:hidden;background:var(--surface2);margin-bottom:12px}
+.op-seg{height:100%}
+.op-seg+.op-seg{box-shadow:-1px 0 0 var(--surface)}
 .op-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border-soft)}
 .op-row:last-child{border:none}
 .op-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
@@ -136,12 +142,16 @@ body{
   </div>
 
   <div id="dashboard" style="display:none">
-    <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-label">Total Gasto</div><div class="kpi-value" id="kpi-gasto">—</div><div class="kpi-sub" id="kpi-sessoes">&nbsp;</div></div>
-      <div class="kpi"><div class="kpi-label">Total kWh</div><div class="kpi-value" id="kpi-kwh">—</div><div class="kpi-sub">&nbsp;</div></div>
-      <div class="kpi"><div class="kpi-label">Custo Médio /kWh</div><div class="kpi-value" id="kpi-custo-kwh">—</div><div class="kpi-sub">&nbsp;</div></div>
-      <div class="kpi"><div class="kpi-label">Custo Médio /100km</div><div class="kpi-value" id="kpi-custo-km">—</div><div class="kpi-sub" id="kpi-kms">&nbsp;</div></div>
-      <div class="kpi"><div class="kpi-label">Média Mensal</div><div class="kpi-value" id="kpi-media-kwh">—</div><div class="kpi-sub">&nbsp;</div></div>
+    <div class="hero">
+      <div class="hero-label">Gasto total em carregamentos</div>
+      <div class="hero-value" id="kpi-gasto">—</div>
+      <div class="hero-sub"><span id="kpi-sessoes">&nbsp;</span><span>·</span><span id="kpi-kwh">—</span></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-chip"><div class="stat-chip-label">Custo médio /kWh</div><div class="stat-chip-value" id="kpi-custo-kwh">—</div></div>
+      <div class="stat-chip"><div class="stat-chip-label">Custo médio /100km</div><div class="stat-chip-value" id="kpi-custo-km">—</div></div>
+      <div class="stat-chip"><div class="stat-chip-label">Média mensal</div><div class="stat-chip-value" id="kpi-media-kwh">—</div></div>
+      <div class="stat-chip"><div class="stat-chip-label">Percorridos</div><div class="stat-chip-value" id="kpi-kms">—</div></div>
     </div>
 
     <div class="card">
@@ -230,7 +240,7 @@ function onData(d){
   $('kpi-kwh').textContent=d.totalKwh.toLocaleString('pt-PT',{minimumFractionDigits:1,maximumFractionDigits:1})+' kWh';
   $('kpi-custo-kwh').textContent='€'+d.custoMedioKwh.toFixed(3);
   $('kpi-custo-km').textContent='€'+d.custoMedioKm.toFixed(2);
-  $('kpi-kms').textContent=Math.round(d.totalKms).toLocaleString('pt-PT')+' km percorridos';
+  $('kpi-kms').textContent=Math.round(d.totalKms).toLocaleString('pt-PT')+' km';
 
   // Média mensal de kWh — a partir dos mesmos meses do gráfico (só meses
   // com carregamentos registados, para não distorcer com meses vazios).
@@ -248,7 +258,7 @@ function onData(d){
 function renderChart(monthly){
   const labels=monthly.map(m=>m.label);
   const ds=[
-    {label:'Gasto',type:'bar',data:monthly.map(m=>m.gasto),backgroundColor:'#F0A93Acc',borderRadius:4,yAxisID:'y'},
+    {label:'Gasto',type:'bar',data:monthly.map(m=>m.gasto),backgroundColor:'#F0A93Acc',borderRadius:5,maxBarThickness:28,yAxisID:'y'},
     {label:'kWh',type:'line',data:monthly.map(m=>m.kwh),borderColor:'#5B8DEF',backgroundColor:'#5B8DEF',
       borderWidth:2,pointRadius:3,pointBackgroundColor:'#5B8DEF',tension:0.3,yAxisID:'y1'},
   ];
@@ -256,21 +266,23 @@ function renderChart(monthly){
   ch['chart-mensal']=new Chart($('chart-mensal'),{type:'bar',data:{labels,datasets:ds},options:{
     responsive:true,maintainAspectRatio:false,
     scales:{
-      x:{ticks:{color:'#8B95A5',font:{family:"'DM Sans'",size:9},maxRotation:55},grid:{display:false}},
-      y:{position:'left',ticks:{color:'#8B95A5',font:{family:"'DM Mono'",size:9},callback:v=>'€'+v},grid:{color:'rgba(255,255,255,0.06)'}},
-      y1:{position:'right',ticks:{color:'#5B8DEF',font:{family:"'DM Mono'",size:9},callback:v=>v+' kWh'},grid:{display:false}}
+      x:{ticks:{color:'#8B95A5',font:{family:"'DM Sans'",size:9},maxRotation:55},grid:{display:false},border:{display:false}},
+      y:{position:'left',ticks:{color:'#8B95A5',font:{family:"'DM Mono'",size:9},callback:v=>'€'+v},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false}},
+      y1:{position:'right',ticks:{color:'#5B8DEF',font:{family:"'DM Mono'",size:9},callback:v=>v+' kWh'},grid:{display:false},border:{display:false}}
     },
     plugins:{
-      legend:{display:true,labels:{color:'#8B95A5',font:{family:"'DM Sans'",size:10},boxWidth:10,usePointStyle:true}},
-      tooltip:{backgroundColor:'#212938',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,
-        titleColor:'#8B95A5',bodyColor:'#F2F4F7',
+      legend:{display:true,labels:{color:'#8B95A5',font:{family:"'DM Sans'",size:10},boxWidth:10,usePointStyle:true,pointStyle:'circle',padding:14}},
+      tooltip:{backgroundColor:'#212938',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,cornerRadius:8,padding:10,
+        titleColor:'#8B95A5',bodyColor:'#F2F4F7',bodyFont:{family:"'DM Mono'",size:12},
         callbacks:{label:c=> c.dataset.label==='Gasto' ? ' '+eur(c.raw) : ' '+c.raw.toLocaleString('pt-PT',{maximumFractionDigits:1})+' kWh'}}
     }
   }});
 }
 
 function renderOperadores(ops){
-  $('op-list').innerHTML = ops.map((o,i)=>`
+  const total=ops.reduce((t,o)=>t+o.gasto,0)||1;
+  const bar=ops.map((o,i)=>`<div class="op-seg" style="width:${(o.gasto/total*100).toFixed(2)}%;background:${OP_COLORS[i%OP_COLORS.length]}"></div>`).join('');
+  const rows=ops.map((o,i)=>`
     <div class="op-row">
       <span class="op-dot" style="background:${OP_COLORS[i%OP_COLORS.length]}"></span>
       <div class="op-name-wrap" style="flex:1;min-width:0">
@@ -279,10 +291,10 @@ function renderOperadores(ops){
       </div>
       <div class="op-right">
         <div class="op-gasto">${eur(o.gasto)}</div>
-        <div class="op-kwh">${o.kwh.toLocaleString('pt-PT',{maximumFractionDigits:0})} kWh</div>
+        <div class="op-kwh">${(o.gasto/total*100).toFixed(0)}% · ${o.kwh.toLocaleString('pt-PT',{maximumFractionDigits:0})} kWh</div>
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
+  $('op-list').innerHTML=`<div class="op-bar">${bar}</div>${rows}`;
 }
 
 /* ── Gasolina ─────────────────────────────────────────────── */
