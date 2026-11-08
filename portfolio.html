@@ -86,32 +86,46 @@ body{
 .skel.tall{height:220px}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-/* ── KPI ── */
-.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;position:relative;overflow:hidden;min-width:0}
-.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--sapphire)}
-.kpi.green::before{background:var(--mint)}
-.kpi.red::before{background:var(--coral)}
-.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px}
-.kpi-value{font-family:'DM Mono',monospace;font-size:clamp(16px,4.4vw,21px);font-weight:500;letter-spacing:-.2px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kpi-sub{font-size:11px;color:var(--muted);margin-top:5px;min-height:14px}
-.alloc-row{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;margin-top:7px}
-.alloc-name{color:var(--muted)}
-.alloc-pct{font-family:'DM Mono',monospace;font-weight:600;color:var(--text)}
+/* ── Hero P&L ── */
+.hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px 20px;margin-bottom:12px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--muted2)}
+.hero.up::before{background:var(--mint)}
+.hero.down::before{background:var(--coral)}
+.hero-label{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px}
+.hero-value{font-family:'Fraunces',serif;font-optical-sizing:auto;font-weight:500;font-size:clamp(32px,10vw,44px);letter-spacing:-.01em;line-height:1}
+.hero-sub{display:flex;align-items:baseline;gap:8px;margin-top:9px;font-size:13px;color:var(--muted)}
+.hero-sub .hero-pct{font-family:'DM Mono',monospace;font-weight:600}
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat-chip{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;min-width:0}
+.stat-chip-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px}
+.stat-chip-value{font-family:'DM Mono',monospace;font-size:clamp(14px,4vw,16px);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ── Card ── */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
 .card-title{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:14px}
+
+/* ── Allocation bar ── */
+.alloc-bar{display:flex;width:100%;height:12px;border-radius:7px;overflow:hidden;background:var(--surface2);margin-bottom:16px}
+.alloc-seg{height:100%;transition:width .3s ease}
+.alloc-seg+.alloc-seg{box-shadow:-1px 0 0 var(--surface)}
+.alloc-legend{display:flex;flex-direction:column}
+.alloc-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border-soft);font-size:13px}
+.alloc-row:last-child{border:none}
+.alloc-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.alloc-name{flex:1;min-width:0;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alloc-value{font-family:'DM Mono',monospace;font-weight:600;color:var(--text);flex-shrink:0}
+.alloc-pct{font-family:'DM Mono',monospace;color:var(--muted);flex-shrink:0;width:48px;text-align:right}
 
 /* ── Info chips ── */
 .info-bar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
 .info-chip{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 12px;min-width:0;overflow:hidden}
 .info-label{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted2);margin-bottom:3px}
 .info-value{font-family:'DM Mono',monospace;font-size:clamp(12px,3.6vw,14px);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.info-chip.pnl .info-value{font-family:'Fraunces',serif;font-optical-sizing:auto;font-size:clamp(15px,4.4vw,18px);font-weight:500}
 
 /* ── Owner accordion ── */
 .owner-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
-.owner-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
+.owner-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--owner-c,transparent);border-radius:var(--r-sm);overflow:hidden}
 .owner-header{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;user-select:none}
 .owner-name-row{display:flex;align-items:center;gap:9px;min-width:0}
 .owner-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
@@ -128,9 +142,8 @@ body{
 .owner-row-l{font-size:12px;color:var(--muted)}
 .owner-row-v{font-family:'DM Mono',monospace;font-size:12px}
 
-/* ── Charts / gauge ── */
-.chart-wrap{position:relative;width:100%;height:340px}
-#gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:12px}
+/* ── Charts ── */
+.chart-wrap{position:relative;width:100%;height:280px}
 
 /* ── Bottom nav ── */
 .bottomnav{
@@ -179,16 +192,19 @@ body{
   <div id="dashboard" style="display:none">
 
     <section id="tab-global" class="tab active">
-      <div class="kpi-grid">
-        <div class="kpi blue"><div class="kpi-label">Total Investido</div><div class="kpi-value" id="kpi-inv">—</div><div class="kpi-sub">&nbsp;</div></div>
-        <div class="kpi blue"><div class="kpi-label">Valor Atual</div><div class="kpi-value" id="kpi-val">—</div><div class="kpi-sub">&nbsp;</div></div>
-        <div class="kpi" id="kpi-pnl-c"><div class="kpi-label">Lucro / Perda</div><div class="kpi-value" id="kpi-pnl">—</div><div class="kpi-sub" id="kpi-pnl-s">—</div></div>
-        <div class="kpi blue" id="kpi-alloc-c"><div class="kpi-label">Alocação</div>
-          <div class="alloc-row"><span class="alloc-name">S&amp;P 500</span><span class="alloc-pct" id="kpi-alloc-sp">—</span></div>
-          <div class="alloc-row"><span class="alloc-name">Bitcoin</span><span class="alloc-pct" id="kpi-alloc-btc">—</span></div>
-        </div>
+      <div class="hero" id="hero-pnl">
+        <div class="hero-label">Lucro / perda total</div>
+        <div class="hero-value" id="kpi-pnl">—</div>
+        <div class="hero-sub"><span class="hero-pct" id="kpi-pnl-s">—</span><span>·</span><span id="kpi-pnl-ctx">—</span></div>
       </div>
-      <div class="card"><div class="card-title">ALOCAÇÃO POR POSIÇÃO</div><div id="gauge-wrap"></div></div>
+      <div class="stat-row">
+        <div class="stat-chip"><div class="stat-chip-label">Investido</div><div class="stat-chip-value" id="kpi-inv">—</div></div>
+        <div class="stat-chip"><div class="stat-chip-label">Valor atual</div><div class="stat-chip-value" id="kpi-val">—</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">ALOCAÇÃO POR POSIÇÃO</div>
+        <div id="alloc-wrap"></div>
+      </div>
     </section>
 
     <section id="tab-sxr8" class="tab">
@@ -301,60 +317,42 @@ function renderAll(d){
   const isUp=c.totPnl>=0;
   $('kpi-inv').textContent=eur(c.totInv);
   $('kpi-val').textContent=eur(c.totVal);
-  $('kpi-pnl-c').className='kpi '+(isUp?'green':'red');
-  $('kpi-pnl').className='kpi-value '+(isUp?'up':'down');
+  $('hero-pnl').className='hero '+(isUp?'up':'down');
+  $('kpi-pnl').className='hero-value '+(isUp?'up':'down');
   $('kpi-pnl').textContent=sgn(c.totPnl);
+  $('kpi-pnl-s').className='hero-pct '+(isUp?'up':'down');
   $('kpi-pnl-s').textContent=pct(c.totPnlPct);
-  const xtbAllocPct=c.totInv>0?pct((c.xtbInv/c.totInv)*100):'—';
-  const btcAllocPct=c.totInv>0?pct((c.btcTotalInvested/c.totInv)*100):'—';
-  $('kpi-alloc-sp').textContent=xtbAllocPct;
-  $('kpi-alloc-btc').textContent=btcAllocPct;
+  $('kpi-pnl-ctx').textContent=eur(c.totVal)+' atual';
 
-  renderGauge(c);
+  renderAllocation(c);
   renderSXR8(d);
   renderBTC(d);
 }
 
-function renderGauge(c){
+// Barra de alocação — substitui o antigo gauge em arco (SVG com trigonometria
+// manual), que por vezes desenhava a etiqueta de percentagem fora do próprio
+// segmento. Uma barra horizontal com larguras em % é mais simples, mais
+// robusta e mais fácil de ler num ecrã pequeno.
+function renderAllocation(c){
   const segments=[];
   ['DM','LCD','RCD'].forEach(o=>{ if(c.xtbOwners[o]) segments.push({label:'S&P 500 '+o, value:c.xtbOwners[o].currentValue, color:COLORS[o]}); });
   segments.push({label:'Bitcoin', value:c.btcVal, color:'#F0A93A'});
   const total=segments.reduce((s,x)=>s+x.value,0)||1;
+  const ordered=[...segments].sort((a,b)=>b.value-a.value);
 
-  // O arco desenha-se da direita para a esquerda à medida que avança, por
-  // isso ordenar do menor para o maior aqui resulta em maior→menor à vista,
-  // da esquerda para a direita.
-  const arcSegments=[...segments].sort((a,b)=>a.value-b.value);
-  const legendSegments=[...segments].sort((a,b)=>b.value-a.value);
+  const bar=ordered.map(seg=>
+    `<div class="alloc-seg" style="width:${(seg.value/total*100).toFixed(2)}%;background:${seg.color}"></div>`
+  ).join('');
 
-  const wrap=$('gauge-wrap');
-  const W=Math.min(wrap.clientWidth || (window.innerWidth-64), 360), R=W*0.36, cx=W/2, cy=R+W*0.05, thick=W*0.115, GAP=0.026;
-  let arcs='', pctLabels=''; let cumAngle=0;
+  const legend=ordered.map(seg=>`
+    <div class="alloc-row">
+      <span class="alloc-dot" style="background:${seg.color}"></span>
+      <span class="alloc-name">${seg.label}</span>
+      <span class="alloc-value">${eur(seg.value)}</span>
+      <span class="alloc-pct">${(seg.value/total*100).toFixed(1)}%</span>
+    </div>`).join('');
 
-  arcSegments.forEach((seg,idx)=>{
-    const span=(seg.value/total)*Math.PI;
-    const a0=cumAngle+GAP/2, a1=cumAngle+span-GAP/2;
-    const sx=(cx+R*Math.cos(a0)).toFixed(1), sy=(cy-R*Math.sin(a0)).toFixed(1);
-    const ex=(cx+R*Math.cos(a1)).toFixed(1), ey=(cy-R*Math.sin(a1)).toFixed(1);
-    const large=span>Math.PI/2?1:0;
-    arcs+=`<path d="M${sx},${sy} A${R},${R} 0 ${large},0 ${ex},${ey}" fill="none" stroke="${seg.color}" stroke-width="${thick}" stroke-linecap="butt"/>`;
-    const amid=cumAngle+span/2;
-    const lx=(cx+R*Math.cos(amid)).toFixed(1), ly=(cy-R*Math.sin(amid)).toFixed(1);
-    const pctVal=(seg.value/total*100).toFixed(1);
-    if(span>0.12) pctLabels+=`<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#0A0D12" font-family="DM Sans,sans-serif" style="pointer-events:none">${pctVal}%</text>`;
-    cumAngle+=span;
-  });
-
-  const legendRows=legendSegments.map(seg=>`<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;padding:6px 0;min-width:0">
-    <span style="width:9px;height:9px;border-radius:2px;background:${seg.color};display:inline-block;flex-shrink:0"></span>
-    <span style="color:var(--muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${seg.label}</span>
-    <span style="color:var(--text);font-family:'DM Mono',monospace;font-weight:600;flex-shrink:0;white-space:nowrap">${eur(seg.value)}</span>
-  </div>`).join('');
-
-  wrap.innerHTML=`<div style="width:${W}px;margin:0 auto">
-    <svg viewBox="0 0 ${W} ${cy+8}" width="${W}" style="overflow:visible;display:block;margin:0 auto">${arcs}${pctLabels}</svg>
-    <div style="display:flex;flex-direction:column;margin-top:6px;border-top:1px solid var(--border-soft);padding-top:2px">${legendRows}</div>
-  </div>`;
+  $('alloc-wrap').innerHTML = `<div class="alloc-bar">${bar}</div><div class="alloc-legend">${legend}</div>`;
 }
 
 /* ── SXR8 ── */
@@ -369,12 +367,12 @@ function renderSXR8(d){
   $('sxr8-info').innerHTML=`
     <div class="info-chip"><div class="info-label">Investido</div><div class="info-value">${eur(totI)}</div></div>
     <div class="info-chip"><div class="info-label">Valor Atual</div><div class="info-value">${eur(totV)}</div></div>
-    <div class="info-chip"><div class="info-label">P&amp;L</div><div class="info-value ${cl(totP)}">${sgn(totP)}<span style="font-size:0.72em;opacity:0.8;margin-left:4px">(${pct((totP/totI)*100)})</span></div></div>
+    <div class="info-chip pnl"><div class="info-label">P&amp;L</div><div class="info-value ${cl(totP)}">${sgn(totP)}<span style="font-size:0.72em;opacity:0.8;margin-left:4px">(${pct((totP/totI)*100)})</span></div></div>
     <div class="info-chip"><div class="info-label">Preço Médio</div><div class="info-value">€${(totI/totShares).toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>`;
 
   $('sxr8-owners').innerHTML=owners.map(o=>{
     const ow=c.xtbOwners[o]; if(!ow) return '';
-    return `<div class="owner-card">
+    return `<div class="owner-card" style="--owner-c:${COLORS[o]}">
       <div class="owner-header" onclick="toggleOwner(this)">
         <div class="owner-name-row"><span class="owner-dot" style="background:${COLORS[o]}"></span><span class="owner-title">${o}</span></div>
         <div class="owner-right"><span class="owner-pnl ${cl(ow.pnl)}">${sgn(ow.pnl)}</span><span class="owner-arrow">▼</span></div>
@@ -407,11 +405,11 @@ function renderBTC(d){
   $('btc-info').innerHTML=`
     <div class="info-chip"><div class="info-label">Investido</div><div class="info-value">${eur(c.btcTotalInvested)}</div></div>
     <div class="info-chip"><div class="info-label">Valor Atual</div><div class="info-value">${eur(c.btcVal)}</div></div>
-    <div class="info-chip"><div class="info-label">P&amp;L</div><div class="info-value ${cl(c.btcPnl)}">${sgn(c.btcPnl)}<span style="font-size:0.72em;opacity:0.8;margin-left:4px">(${pct((c.btcPnl/c.btcTotalInvested)*100)})</span></div></div>
+    <div class="info-chip pnl"><div class="info-label">P&amp;L</div><div class="info-value ${cl(c.btcPnl)}">${sgn(c.btcPnl)}<span style="font-size:0.72em;opacity:0.8;margin-left:4px">(${pct((c.btcPnl/c.btcTotalInvested)*100)})</span></div></div>
     <div class="info-chip"><div class="info-label">Preço Médio</div><div class="info-value">€${c.btcAvgPrice.toLocaleString('pt-PT')}</div></div>`;
 
   $('btc-monthly-cards').innerHTML=c.btcMonthlyBreakdown.map(m=>{
-    return `<div class="owner-card">
+    return `<div class="owner-card" style="--owner-c:#F0A93A">
       <div class="owner-header" onclick="toggleOwner(this)">
         <div class="owner-name-row"><span class="owner-dot" style="background:#F0A93A"></span><span class="owner-title">${m.label}</span></div>
         <div class="owner-right"><span class="owner-pnl ${cl(m.pnl)}">${sgn(m.pnl)}</span><span class="owner-arrow">▼</span></div>
@@ -438,31 +436,33 @@ function renderBTC(d){
 }
 
 /* ── Chart factories ── */
+const TOOLTIP_BASE={backgroundColor:'#212938',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,
+  cornerRadius:8,padding:10,titleColor:'#8B95A5',titleFont:{family:"'DM Sans'",size:10,weight:'600'},
+  bodyColor:'#F2F4F7',bodyFont:{family:"'DM Mono'",size:12},boxPadding:4};
+
 function barChart(id,labels,datasets,stacked){
+  datasets=datasets.map(ds=>({maxBarThickness:28,...ds}));
   return new Chart($(id),{type:'bar',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,
     scales:{
-      x:{stacked,ticks:{color:'#8B95A5',font:{family:"'DM Sans'",size:9},maxRotation:55},grid:{display:false}},
-      y:{stacked,ticks:{color:'#8B95A5',font:{family:"'DM Mono'",size:9},callback:v=>'€'+v},grid:{color:GRID}}
+      x:{stacked,ticks:{color:'#8B95A5',font:{family:"'DM Sans'",size:9},maxRotation:55},grid:{display:false},border:{display:false}},
+      y:{stacked,ticks:{color:'#8B95A5',font:{family:"'DM Mono'",size:9},callback:v=>'€'+v},grid:{color:GRID},border:{display:false}}
     },
     plugins:{
-      legend:{labels:{color:'#8B95A5',font:{family:"'DM Sans'",size:11,weight:'500'},boxWidth:9,usePointStyle:true,padding:12}},
-      tooltip:{backgroundColor:'#212938',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,
-        titleColor:'#8B95A5',bodyColor:'#F2F4F7',
-        callbacks:{label:c=>' '+c.dataset.label+': €'+c.raw.toFixed(0)}}
+      legend:{labels:{color:'#8B95A5',font:{family:"'DM Sans'",size:11,weight:'500'},boxWidth:9,usePointStyle:true,pointStyle:'circle',padding:14}},
+      tooltip:{...TOOLTIP_BASE,callbacks:{label:c=>' '+c.dataset.label+': €'+c.raw.toFixed(0)}}
     }
   }});
 }
 function lineChart(id,labels,datasets,yFmt){
   return new Chart($(id),{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
     scales:{
-      x:{ticks:{color:'#8B95A5',font:{family:"'DM Sans'",size:9},maxRotation:55},grid:{display:false}},
-      y:{ticks:{color:'#8B95A5',font:{family:"'DM Mono'",size:9},callback:yFmt},grid:{color:GRID}}
+      x:{ticks:{color:'#8B95A5',font:{family:"'DM Sans'",size:9},maxRotation:55},grid:{display:false},border:{display:false}},
+      y:{ticks:{color:'#8B95A5',font:{family:"'DM Mono'",size:9},callback:yFmt},grid:{color:GRID},border:{display:false}}
     },
     plugins:{
-      legend:{labels:{color:'#8B95A5',font:{family:"'DM Sans'",size:11,weight:'500'},boxWidth:16,padding:12}},
-      tooltip:{backgroundColor:'#212938',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,
-        titleColor:'#8B95A5',bodyColor:'#F2F4F7',
-        callbacks:{label:c=>' '+c.dataset.label+': €'+c.raw.toLocaleString('pt-PT')}}
+      legend:{labels:{color:'#8B95A5',font:{family:"'DM Sans'",size:11,weight:'500'},boxWidth:16,usePointStyle:true,pointStyle:'line',padding:14}},
+      tooltip:{...TOOLTIP_BASE,callbacks:{label:c=>' '+c.dataset.label+': €'+c.raw.toLocaleString('pt-PT')}}
     }
   }});
 }
