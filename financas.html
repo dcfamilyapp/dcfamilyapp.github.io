@@ -41,13 +41,13 @@ body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'DM San
 .app{padding:16px}
 
 /* Grelha de meses */
-.mes-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.mes-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 16px;cursor:pointer;position:relative;overflow:hidden;transition:border-color .15s}
+.mes-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.mes-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 8px;cursor:pointer;position:relative;overflow:hidden;transition:border-color .15s;text-align:center}
 .mes-card:active{transform:scale(.97)}
 .mes-card.current{border-color:var(--amber)}
-.mes-card.current::after{content:'atual';position:absolute;top:8px;right:10px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--amber)}
-.mes-label{font-size:17px;font-weight:700}
-.mes-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.mes-card.current::after{content:'atual';position:absolute;top:4px;right:6px;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--amber)}
+.mes-label{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mes-sub{font-size:9.5px;color:var(--muted);margin-top:2px}
 
 /* Detalhe do mês */
 .back-btn{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;padding:0;display:flex;align-items:center;gap:5px;margin-bottom:16px}
@@ -131,7 +131,7 @@ let currentView = 'grid'; // 'grid' | 'detail'
 function showSkeleton(){
   $('app').innerHTML = `
     <div class="mes-grid">
-      ${Array(6).fill('<div class="skel" style="height:74px"></div>').join('')}
+      ${Array(9).fill('<div class="skel" style="height:46px"></div>').join('')}
     </div>`;
 }
 function showDetailSkeleton(label){
