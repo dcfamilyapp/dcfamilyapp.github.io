@@ -234,6 +234,17 @@ body{
       <div class="card"><div class="card-title">PREÇO DE COMPRA VS MÉDIA ACUMULADA</div><div class="chart-wrap"><canvas id="chart-btc-price"></canvas></div></div>
     </section>
 
+    <section id="tab-stocks" class="tab">
+      <div class="info-bar" id="stocks-info"></div>
+      <div class="owner-list" id="stocks-holdings"></div>
+      <div class="card">
+        <div class="card-title">ÚLTIMAS COMPRAS</div>
+        <div id="stocks-recentes"></div>
+      </div>
+      <div class="card"><div class="card-title">MENSAL POR STOCK (€)</div><div class="chart-wrap"><canvas id="chart-st-bar"></canvas></div></div>
+      <div class="card"><div class="card-title">CAPITAL ACUMULADO (€)</div><div class="chart-wrap"><canvas id="chart-st-cum"></canvas></div></div>
+    </section>
+
   </div>
 </div>
 
@@ -241,6 +252,7 @@ body{
   <button class="navbtn active" data-tab="global" onclick="setTab('global',this)"><span class="nav-icon">🌍</span><span class="nav-label">Global</span></button>
   <button class="navbtn" data-tab="sxr8" onclick="setTab('sxr8',this)"><span class="nav-icon">📈</span><span class="nav-label">S&amp;P 500</span></button>
   <button class="navbtn" data-tab="btc" onclick="setTab('btc',this)"><span class="nav-icon">₿</span><span class="nav-label">Bitcoin</span></button>
+  <button class="navbtn" data-tab="stocks" onclick="setTab('stocks',this)"><span class="nav-icon">🏢</span><span class="nav-label">Stocks</span></button>
 </nav>
 </div>
 
@@ -267,6 +279,9 @@ const pct=v=>(v>=0?'+':'')+v.toFixed(2)+'%';
 const sgn=v=>(v>=0?'+':'')+eur(v);
 const cl =v=>v>=0?'up':'down';
 const COLORS={DM:'#5B8DEF',LCD:'#34D399',RCD:'#A78BFA'};
+const STOCK_COLORS=['#F472B6','#22D3EE','#FB923C','#A3E635','#E879F9','#2DD4BF','#FACC15','#94A3B8'];
+const stockColor=i=>STOCK_COLORS[i%STOCK_COLORS.length];
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const GRID='rgba(255,255,255,0.06)';
 const $=id=>document.getElementById(id);
 let ch={};
@@ -323,19 +338,21 @@ function renderAll(d){
   $('kpi-pnl-s').textContent=pct(c.totPnlPct);
   $('kpi-pnl-ctx').textContent=eur(c.totVal)+' atual';
 
-  renderAllocation(c);
+  renderAllocation(c,d.stocks);
   renderSXR8(d);
   renderBTC(d);
+  renderStocks(d);
 }
 
 // Barra de alocação — substitui o antigo gauge em arco (SVG com trigonometria
 // manual), que por vezes desenhava a etiqueta de percentagem fora do próprio
 // segmento. Uma barra horizontal com larguras em % é mais simples, mais
 // robusta e mais fácil de ler num ecrã pequeno.
-function renderAllocation(c){
+function renderAllocation(c,stocks){
   const segments=[];
   ['DM','LCD','RCD'].forEach(o=>{ if(c.xtbOwners[o]) segments.push({label:'S&P 500 '+o, value:c.xtbOwners[o].currentValue, color:COLORS[o]}); });
   segments.push({label:'Bitcoin', value:c.btcVal, color:'#F0A93A'});
+  ((stocks&&stocks.holdings)||[]).forEach((h,i)=>segments.push({label:esc(h.name||h.ticker), value:h.currentValue, color:stockColor(i)}));
   const total=segments.reduce((s,x)=>s+x.value,0)||1;
   const ordered=[...segments].sort((a,b)=>b.value-a.value);
 
@@ -396,6 +413,67 @@ function renderSXR8(d){
   const cumDs=[{label:'Acumulado',data:d.xtbMonthly.map(m=>m.cum),borderColor:'#F4D27A',
     backgroundColor:'#D2A13A22',borderWidth:2,pointRadius:2,fill:true,tension:0.3}];
   dc('chart-sp-cum'); ch['chart-sp-cum']=lineChart('chart-sp-cum',labels,cumDs,v=>'€'+v.toLocaleString('pt-PT'));
+}
+
+/* ── Stocks ── */
+function renderStocks(d){
+  const st=d.stocks||{holdings:[],monthly:[],recent:[]};
+  const hs=st.holdings||[];
+  const info=$('stocks-info'), list=$('stocks-holdings'), rec=$('stocks-recentes');
+  if(st.error){
+    info.innerHTML='';list.innerHTML='';
+    rec.innerHTML=`<div style="color:var(--coral);font-size:13px">Erro ao ler a aba Stocks: ${esc(st.error)}</div>`;
+    dc('chart-st-bar');dc('chart-st-cum');return;
+  }
+  if(!hs.length){
+    info.innerHTML='';list.innerHTML='';
+    rec.innerHTML='<div style="color:var(--muted);font-size:13px">Ainda sem stocks na aba Stocks da folha.</div>';
+    dc('chart-st-bar');dc('chart-st-cum');return;
+  }
+  const noPrice=hs.filter(h=>h.noPrice).map(h=>h.ticker);
+  info.innerHTML=`
+    <div class="info-chip"><div class="info-label">Investido</div><div class="info-value">${eur(st.inv)}</div></div>
+    <div class="info-chip"><div class="info-label">Valor Atual</div><div class="info-value">${eur(st.val)}</div></div>
+    <div class="info-chip pnl"><div class="info-label">P&amp;L</div><div class="info-value ${cl(st.pnl)}">${sgn(st.pnl)}<span style="font-size:0.72em;opacity:0.8;margin-left:4px">(${pct(st.pnlPct)})</span></div></div>
+    <div class="info-chip"><div class="info-label">Posições</div><div class="info-value">${hs.length}</div></div>`;
+
+  list.innerHTML=hs.map((h,i)=>`<div class="owner-card" style="--owner-c:${stockColor(i)}">
+      <div class="owner-header" onclick="toggleOwner(this)">
+        <div class="owner-name-row"><span class="owner-dot" style="background:${stockColor(i)}"></span><span class="owner-title">${esc(h.name)} <span style="color:var(--muted2);font-weight:500">${esc(h.ticker)}</span></span></div>
+        <div class="owner-right"><span class="owner-pnl ${cl(h.pnl)}">${sgn(h.pnl)}</span><span class="owner-arrow">▼</span></div>
+      </div>
+      <div class="owner-body"><div class="owner-body-inner">
+        <div class="owner-row"><span class="owner-row-l">Investido</span><span class="owner-row-v">${eur(h.invested)}</span></div>
+        <div class="owner-row"><span class="owner-row-l">Ações</span><span class="owner-row-v">${h.shares.toFixed(4)}</span></div>
+        <div class="owner-row"><span class="owner-row-l">Preço Médio</span><span class="owner-row-v">${eur(h.avgPrice)}</span></div>
+        <div class="owner-row"><span class="owner-row-l">Preço Atual</span><span class="owner-row-v">${h.noPrice?'—':eur(h.price)}${h.noPrice?'':` <span class="${cl(h.dayPct)}" style="font-size:.85em">${pct(h.dayPct)} hoje</span>`}</span></div>
+        <div class="owner-row"><span class="owner-row-l">Valor Atual</span><span class="owner-row-v">${eur(h.currentValue)}</span></div>
+        <div class="owner-row"><span class="owner-row-l">Retorno</span><span class="owner-row-v ${cl(h.pnlPct)}">${pct(h.pnlPct)}</span></div>
+      </div></div>
+    </div>`).join('')+(noPrice.length?`<div style="font-size:11.5px;color:var(--muted);padding:4px 2px">Sem preço de mercado para ${esc(noPrice.join(', '))} — a mostrar o valor investido. Se o ticker for diferente no Yahoo Finance, mapeia-o em STOCK_YAHOO_MAP no Code.gs.</div>`:'');
+
+  rec.innerHTML=(st.recent||[]).map(t=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <span style="width:9px;height:9px;border-radius:50%;background:${t.side==='Venda'?'var(--coral)':'var(--mint)'};flex-shrink:0"></span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500">${esc(t.name)} · ${t.shares.toFixed(4)} ações</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">${esc(t.date)} · ${esc(t.ticker)}</div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;flex-shrink:0">${eur(t.eur)}</div>
+    </div>`).join('');
+
+  // Gráfico mensal empilhado: top 5 por capital investido + "Outras"
+  const totals={};
+  st.monthly.forEach(m=>Object.entries(m.byTicker).forEach(([k,v])=>totals[k]=(totals[k]||0)+v));
+  const top=Object.keys(totals).sort((a,b)=>totals[b]-totals[a]).slice(0,5);
+  const hasOther=Object.keys(totals).length>top.length;
+  const labels=st.monthly.map(m=>m.label);
+  const nameOf=t=>(hs.find(h=>h.ticker===t)||{}).ticker||t;
+  const ds=top.map((t,i)=>({label:nameOf(t),data:st.monthly.map(m=>m.byTicker[t]||0),backgroundColor:stockColor(i)+'cc',borderRadius:3}));
+  if(hasOther) ds.push({label:'Outras',data:st.monthly.map(m=>Object.entries(m.byTicker).filter(([k])=>!top.includes(k)).reduce((x,[,v])=>x+v,0)),backgroundColor:'#5C6576cc',borderRadius:3});
+  dc('chart-st-bar'); ch['chart-st-bar']=barChart('chart-st-bar',labels,ds,true);
+  const cumDs=[{label:'Acumulado',data:st.monthly.map(m=>m.cum),borderColor:'#F472B6',backgroundColor:'#F472B622',borderWidth:2,pointRadius:2,fill:true,tension:0.3}];
+  dc('chart-st-cum'); ch['chart-st-cum']=lineChart('chart-st-cum',labels,cumDs,v=>'€'+v.toLocaleString('pt-PT'));
 }
 
 /* ── BTC ── */
