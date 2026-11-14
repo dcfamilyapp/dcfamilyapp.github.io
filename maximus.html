@@ -236,7 +236,7 @@ function onData(d){
   $('updated-txt').textContent='Atualizado em '+d.updated;
 
   $('kpi-gasto').textContent=eur(d.totalGasto);
-  $('kpi-sessoes').textContent=d.numSessoes+' carregamentos';
+  $('kpi-sessoes').textContent=d.numSessoes+' carregamentos'+(d.mensalidades?' · inclui '+eur(d.mensalidades)+' de mensalidades':'');
   $('kpi-kwh').textContent=d.totalKwh.toLocaleString('pt-PT',{minimumFractionDigits:1,maximumFractionDigits:1})+' kWh';
   $('kpi-custo-kwh').textContent='€'+d.custoMedioKwh.toFixed(3);
   $('kpi-custo-km').textContent='€'+d.custoMedioKm.toFixed(2);
@@ -288,6 +288,8 @@ function renderOperadores(ops){
       <div class="op-name-wrap" style="flex:1;min-width:0">
         <div class="op-name">${o.nome}</div>
         <div class="op-sub">${o.sessoes} carregamento${o.sessoes>1?'s':''} · €${o.precoMedioKwh.toFixed(3)}/kWh</div>
+        ${o.mensalidade?`<div class="op-sub" style="color:var(--amber)">inclui mensalidade · ${eur(o.mensalidade)}</div>`:''}
+        ${(o.tipos&&o.tipos.length>1)||o.mensalidade?o.tipos.map(t=>`<div class="op-sub" style="margin-top:2px"><b style="color:var(--text);font-weight:600">${t.tipo}</b> · ${t.sessoes} carr. · ${t.kwh.toLocaleString('pt-PT',{maximumFractionDigits:0})} kWh · <span style="font-family:'DM Mono',monospace;color:var(--text)">€${t.precoMedioKwh.toFixed(3)}/kWh</span>${t.mensalidade?` <span style="color:var(--amber)">(c/ mensalidade)</span>`:''}</div>`).join(''):''}
       </div>
       <div class="op-right">
         <div class="op-gasto">${eur(o.gasto)}</div>
