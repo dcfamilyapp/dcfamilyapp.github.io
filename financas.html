@@ -560,7 +560,7 @@ function modalMovHTML(s){
   const tipoAtual = v.tipo || 'despesa';
   const vals = {
     tipo: tipoAtual,
-    dataISO: isEdit ? v.data.split('/').reverse().join('-') : new Date().toISOString().slice(0,10),
+    dataISO: isEdit ? v.data.split('/').reverse().join('-') : new Date().toLocaleDateString('en-CA',{timeZone:'Europe/Lisbon'}),
     valor: isEdit ? v.valor : '',
     col1: isEdit ? v.col1 : '',
     col2: isEdit ? v.col2 : '',
