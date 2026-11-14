@@ -251,8 +251,8 @@ body{
 <nav class="bottomnav">
   <button class="navbtn active" data-tab="global" onclick="setTab('global',this)"><span class="nav-icon">🌍</span><span class="nav-label">Global</span></button>
   <button class="navbtn" data-tab="sxr8" onclick="setTab('sxr8',this)"><span class="nav-icon">📈</span><span class="nav-label">S&amp;P 500</span></button>
-  <button class="navbtn" data-tab="btc" onclick="setTab('btc',this)"><span class="nav-icon">₿</span><span class="nav-label">Bitcoin</span></button>
   <button class="navbtn" data-tab="stocks" onclick="setTab('stocks',this)"><span class="nav-icon">🏢</span><span class="nav-label">Stocks</span></button>
+  <button class="navbtn" data-tab="btc" onclick="setTab('btc',this)"><span class="nav-icon">₿</span><span class="nav-label">Bitcoin</span></button>
 </nav>
 </div>
 
@@ -501,6 +501,7 @@ function renderBTC(d){
     </div>`;
   }).join('');
 
+  if(d.btcPrice) lastBtcPriceEur=d.btcPrice;
   const ph=d.btcPriceHistory;
   const btcBarDs=[{label:'Investido',data:d.btcMonthly.map(m=>m.invested),backgroundColor:'#F0A93Acc',borderRadius:5}];
   dc('chart-btc-bar'); ch['chart-btc-bar']=barChart('chart-btc-bar',d.btcMonthly.map(m=>m.label),btcBarDs,false);
@@ -545,6 +546,7 @@ function lineChart(id,labels,datasets,yFmt){
 }
 
 /* ── Últimas compras de BTC ──────────────────────────────────── */
+let lastBtcPriceEur = 0;
 let btcRecentes = [];
 let btcRecentesLoaded = false;
 const BTC_FIELD_STYLE = "width:100%;padding:10px;margin-top:6px;border-radius:9px;border:1px solid rgba(255,255,255,0.08);background:#181D26;color:#F2F4F7;font-size:14px;font-family:inherit";
@@ -658,6 +660,15 @@ async function submitBTC(isEdit){
 
   if (!qty || Number(qty) <= 0) { msg.textContent='Indica a quantidade.'; restore(); return; }
   if (!eurVal || Number(eurVal) <= 0) { msg.textContent='Indica o valor investido.'; restore(); return; }
+  // Rede de segurança: se o preço implícito (€ investidos ÷ quantidade) estiver muito longe
+  // do preço atual do BTC, é quase de certeza uma casa decimal trocada.
+  if (lastBtcPriceEur && coin.toUpperCase()==='BTC') {
+    const implied = Number(eurVal)/Number(qty);
+    if (implied > lastBtcPriceEur*1.5 || implied < lastBtcPriceEur/1.5) {
+      const ok = confirm('Esta compra implica €'+Math.round(implied).toLocaleString('pt-PT')+' por BTC, mas o preço atual é cerca de €'+Math.round(lastBtcPriceEur).toLocaleString('pt-PT')+'.\n\nConfirma a quantidade ('+qty+'). Guardar mesmo assim?');
+      if (!ok) { restore(); return; }
+    }
+  }
 
   const payload = {
     action: isEdit?'btcEdit':'btcAdd',
