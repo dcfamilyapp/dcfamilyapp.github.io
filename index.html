@@ -475,7 +475,7 @@ body.drawer-open #drawer{ transform:translateX(0); }
   }
 
   // ── Alertas de preço ─────────────────────────────────────────
-  let _alertConfig = { sp500: { enabled: false, thresholds: [5] }, btc: { enabled: false, thresholds: [5] } };
+  let _alertConfig = { sp500: { enabled: false, thresholds: [5] }, btc: { enabled: false, thresholds: [5] }, stocks: { enabled: false, thresholds: [5] } };
   let _alertsLoaded = false;
 
   function alertCardHTML(asset, label, icon){
@@ -517,6 +517,7 @@ body.drawer-open #drawer{ transform:translateX(0); }
         </p>
         ${alertCardHTML('sp500','S&amp;P 500','📈')}
         ${alertCardHTML('btc','Bitcoin','₿')}
+        ${alertCardHTML('stocks','Stocks (cada posição)','🏢')}
         <div id="al-msg" style="font-size:12px;color:var(--coral);min-height:14px;margin-bottom:10px;text-align:center"></div>
         <button onclick="saveAlerts()" id="al-save"
           style="width:100%;padding:13px;border:none;border-radius:12px;background:var(--gold);color:#1a1305;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;margin-bottom:20px">
@@ -542,7 +543,7 @@ body.drawer-open #drawer{ transform:translateX(0); }
       ]);
       if (!document.getElementById('dm-alertas')) return; // modal já foi fechado
       if (cfgR.ok) {
-        _alertConfig = { sp500: cfgR.sp500, btc: cfgR.btc };
+        _alertConfig = { sp500: cfgR.sp500, btc: cfgR.btc, stocks: cfgR.stocks || { enabled: false, thresholds: [5] } };
         applyAlertConfigToUI();
       }
       if (histR.ok) renderAlertHistory(histR.history);
@@ -554,7 +555,7 @@ body.drawer-open #drawer{ transform:translateX(0); }
   }
 
   function applyAlertConfigToUI(){
-    ['sp500','btc'].forEach(asset => {
+    ['sp500','btc','stocks'].forEach(asset => {
       const cfg = _alertConfig[asset];
       const cb = document.getElementById('al-' + asset + '-enabled');
       if (cb) cb.checked = cfg.enabled;
@@ -564,7 +565,7 @@ body.drawer-open #drawer{ transform:translateX(0); }
         if (btn) btn.classList.toggle('active', cfg.thresholds.includes(t));
       });
       const info = document.getElementById('al-' + asset + '-ref-info');
-      if (info) info.textContent = cfg.refPrice
+      if (info) info.textContent = asset === 'stocks' ? 'Alerta quando uma posição sobe/desce X% no dia.' : cfg.refPrice
         ? 'Ontem: €' + cfg.refPrice.toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2})
         : 'Referência pronta amanhã.';
     });
@@ -598,12 +599,13 @@ body.drawer-open #drawer{ transform:translateX(0); }
 
     _alertConfig.sp500.enabled = document.getElementById('al-sp500-enabled').checked;
     _alertConfig.btc.enabled   = document.getElementById('al-btc-enabled').checked;
+    _alertConfig.stocks.enabled = document.getElementById('al-stocks-enabled').checked;
 
     try {
       const r = await fetch(Auth.API_URL + '?action=setAlertConfig&pin=' + encodeURIComponent(pin), {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'setAlertConfig', pin, sp500: _alertConfig.sp500, btc: _alertConfig.btc }),
+        body: JSON.stringify({ action: 'setAlertConfig', pin, sp500: _alertConfig.sp500, btc: _alertConfig.btc, stocks: _alertConfig.stocks }),
       });
       const d = await r.json();
       if (d.ok) {
