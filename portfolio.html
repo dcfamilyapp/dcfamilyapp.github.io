@@ -483,7 +483,7 @@ function renderBTC(d){
     <div class="info-chip"><div class="info-label">Investido</div><div class="info-value">${eur(c.btcTotalInvested)}</div></div>
     <div class="info-chip"><div class="info-label">Valor Atual</div><div class="info-value">${eur(c.btcVal)}</div></div>
     <div class="info-chip pnl"><div class="info-label">P&amp;L</div><div class="info-value ${cl(c.btcPnl)}">${sgn(c.btcPnl)}<span style="font-size:0.72em;opacity:0.8;margin-left:4px">(${pct((c.btcPnl/c.btcTotalInvested)*100)})</span></div></div>
-    <div class="info-chip"><div class="info-label">Preço Médio</div><div class="info-value">€${c.btcAvgPrice.toLocaleString('pt-PT')}</div></div>`;
+    <div class="info-chip"><div class="info-label">Preço Médio</div><div class="info-value">€${c.btcAvgPrice.toLocaleString('pt-PT')}${c.btcAvgPriceUsd?`<div style="font-size:0.8em;color:var(--muted);margin-top:2px">$${c.btcAvgPriceUsd.toLocaleString('pt-PT')}</div>`:''}</div></div>`;
 
   $('btc-monthly-cards').innerHTML=c.btcMonthlyBreakdown.map(m=>{
     return `<div class="owner-card" style="--owner-c:#F0A93A">
@@ -495,6 +495,7 @@ function renderBTC(d){
         <div class="owner-row"><span class="owner-row-l">Investido</span><span class="owner-row-v">${eur(m.invested)}</span></div>
         <div class="owner-row"><span class="owner-row-l">Quantidade</span><span class="owner-row-v">${m.qty.toFixed(6)} BTC</span></div>
         <div class="owner-row"><span class="owner-row-l">Preço Médio</span><span class="owner-row-v">€${m.avgPrice.toLocaleString('pt-PT')}</span></div>
+        ${m.avgPriceUsd?`<div class="owner-row"><span class="owner-row-l">Preço Médio ($)</span><span class="owner-row-v">$${m.avgPriceUsd.toLocaleString('pt-PT')}</span></div>`:''}
         <div class="owner-row"><span class="owner-row-l">Valor Atual</span><span class="owner-row-v">${eur(m.currentValue)}</span></div>
         <div class="owner-row"><span class="owner-row-l">Retorno</span><span class="owner-row-v ${cl(m.pnlPct)}">${pct(m.pnlPct)}</span></div>
       </div></div>
