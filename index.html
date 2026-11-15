@@ -475,7 +475,7 @@ body.drawer-open #drawer{ transform:translateX(0); }
   }
 
   // ── Alertas de preço ─────────────────────────────────────────
-  let _alertConfig = { sp500: { enabled: false, thresholds: [5] }, btc: { enabled: false, thresholds: [5] }, stocks: { enabled: false, thresholds: [5] } };
+  let _alertConfig = { sp500: { enabled: false, thresholds: [5] }, btc: { enabled: false, thresholds: [5] }, stocks: { enabled: false, thresholds: [5], watchlist: [] } };
   let _alertsLoaded = false;
 
   function alertCardHTML(asset, label, icon){
@@ -500,6 +500,16 @@ body.drawer-open #drawer{ transform:translateX(0); }
         <button onclick="setThreshold('${asset}',15)" id="al-${asset}-thr-15" class="thr-btn">15%</button>
       </div>
       <div id="al-${asset}-ref-info" style="font-size:11px;color:var(--muted2);margin-top:10px"></div>
+      ${asset==='stocks'?`
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted2);margin:14px 0 8px">Em vista (watchlist)</div>
+      <div style="display:flex;gap:6px">
+        <input id="al-wl-input" type="text" autocapitalize="characters" autocomplete="off" placeholder="Ticker, ex: NVDA ou VUAA.DE"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addWatch();}"
+          style="flex:1;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;text-transform:uppercase">
+        <button type="button" onclick="addWatch()" style="padding:0 14px;border:none;border-radius:10px;background:var(--gold);color:#1a1305;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit">+</button>
+      </div>
+      <div id="al-wl-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px"></div>
+      <div style="font-size:11px;color:var(--muted2);margin-top:8px">Usa o ticker do Yahoo Finance (ações europeias levam sufixo, ex: .DE, .AS). Usa os limites acima.</div>`:''}
     </div>`;
   }
 
@@ -543,7 +553,7 @@ body.drawer-open #drawer{ transform:translateX(0); }
       ]);
       if (!document.getElementById('dm-alertas')) return; // modal já foi fechado
       if (cfgR.ok) {
-        _alertConfig = { sp500: cfgR.sp500, btc: cfgR.btc, stocks: cfgR.stocks || { enabled: false, thresholds: [5] } };
+        _alertConfig = { sp500: cfgR.sp500, btc: cfgR.btc, stocks: Object.assign({ watchlist: [] }, cfgR.stocks || { enabled: false, thresholds: [5] }) };
         applyAlertConfigToUI();
       }
       if (histR.ok) renderAlertHistory(histR.history);
@@ -565,10 +575,30 @@ body.drawer-open #drawer{ transform:translateX(0); }
         if (btn) btn.classList.toggle('active', cfg.thresholds.includes(t));
       });
       const info = document.getElementById('al-' + asset + '-ref-info');
+      if (asset === 'stocks') renderWatch();
       if (info) info.textContent = asset === 'stocks' ? 'Alerta quando uma posição sobe/desce X% no dia.' : cfg.refPrice
         ? 'Ontem: €' + cfg.refPrice.toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2})
         : 'Referência pronta amanhã.';
     });
+  }
+
+  function renderWatch(){
+    const el = document.getElementById('al-wl-list'); if (!el) return;
+    const wl = _alertConfig.stocks.watchlist || [];
+    el.innerHTML = wl.length ? wl.map(t => `<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 6px 6px 10px;border-radius:999px;background:var(--bg);border:1px solid var(--border);font-family:'DM Mono',monospace;font-size:12px">${t}<button type="button" onclick="removeWatch('${t}')" style="background:none;border:none;color:var(--muted);font-size:16px;line-height:1;cursor:pointer;padding:0 4px">×</button></span>`).join('')
+      : '<span style="font-size:12px;color:var(--muted2)">Nenhum ticker adicionado.</span>';
+  }
+  function addWatch(){
+    const inp = document.getElementById('al-wl-input'); if (!inp) return;
+    const t = inp.value.trim().toUpperCase().replace(/[^A-Z0-9.\-=^]/g,'');
+    if (!t) return;
+    const wl = _alertConfig.stocks.watchlist || (_alertConfig.stocks.watchlist = []);
+    if (!wl.includes(t)) wl.push(t);
+    inp.value = ''; renderWatch();
+  }
+  function removeWatch(t){
+    _alertConfig.stocks.watchlist = (_alertConfig.stocks.watchlist || []).filter(x => x !== t);
+    renderWatch();
   }
 
   function updateAlertToggle(asset){
