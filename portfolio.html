@@ -238,7 +238,12 @@ body{
       <div class="info-bar" id="stocks-info"></div>
       <div class="owner-list" id="stocks-holdings"></div>
       <div class="card">
-        <div class="card-title">ÚLTIMAS COMPRAS</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div class="card-title" style="margin:0">ÚLTIMAS COMPRAS</div>
+          <button onclick="$('st-file').click()" style="background:#D2A13A;border:none;border-radius:8px;color:#1a1305;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:inherit">⬆ Importar CSV</button>
+          <input id="st-file" type="file" accept=".csv,text/csv" style="display:none" onchange="stImportPick(this)">
+        </div>
+        <div id="st-import-msg" style="font-size:12px;margin-bottom:8px;display:none"></div>
         <div id="stocks-recentes"></div>
       </div>
       <div class="card"><div class="card-title">MENSAL POR STOCK (€)</div><div class="chart-wrap"><canvas id="chart-st-bar"></canvas></div></div>
@@ -416,6 +421,44 @@ function renderSXR8(d){
 }
 
 /* ── Stocks ── */
+/* ── Importar CSV do Trading 212 ─────────────────────────────── */
+function parseCSV_(text){
+  const rows=[]; let row=[], cur='', q=false;
+  text=text.replace(/^\uFEFF/,'');
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else if(c==='"') q=true;
+    else if(c===','){ row.push(cur); cur=''; }
+    else if(c==='\n'||c==='\r'){ if(c==='\r'&&text[i+1]==='\n') i++; row.push(cur); cur=''; if(row.length>1||row[0]!=='') rows.push(row); row=[]; }
+    else cur+=c;
+  }
+  if(cur!==''||row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+async function stImportPick(inp){
+  const f=inp.files[0]; inp.value='';
+  const msg=$('st-import-msg'); if(!f) return;
+  const show=(t,c)=>{ msg.style.display='block'; msg.style.color=c||'var(--muted)'; msg.textContent=t; };
+  try{
+    const rows=parseCSV_(await f.text());
+    if(rows.length<2){ show('O ficheiro está vazio.','var(--coral)'); return; }
+    const head=rows[0].map(x=>x.trim());
+    if(!head.includes('Ticker')||!head.includes('No. of shares')){ show('Isto não parece um CSV de histórico do Trading 212.','var(--coral)'); return; }
+    const objs=rows.slice(1).map(r=>{ const o={}; head.forEach((h,i)=>o[h]=(r[i]||'').trim()); return o; });
+    const trades=objs.filter(o=>/buy|sell/i.test(o['Action']||''));
+    if(!trades.length){ show('Sem compras/vendas neste ficheiro.','var(--coral)'); return; }
+    if(!confirm('Importar '+trades.length+' transações ('+[...new Set(trades.map(t=>t['Ticker']))].join(', ')+')? As que já existem são ignoradas.')) return;
+    show('A importar…');
+    const payload={action:'stocksImport',pin:Auth.getStoredPin()||'',rows:objs};
+    const url=Auth.API_URL+'?'+new URLSearchParams({action:payload.action,pin:payload.pin});
+    const d=await postToScript(url,payload);
+    if(!d.ok){ show('Erro: '+(d.error||'desconhecido'),'var(--coral)'); return; }
+    show('✓ '+d.added+' novas · '+d.duplicates+' já existiam'+(d.skipped?' · '+d.skipped+' ignoradas (dividendos, depósitos…)':''),'var(--mint)');
+    loadData();
+  }catch(e){ show('Erro: '+e.message,'var(--coral)'); }
+}
+
 function renderStocks(d){
   const st=d.stocks||{holdings:[],monthly:[],recent:[]};
   const hs=st.holdings||[];
