@@ -13,6 +13,7 @@
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <title>DC Investments</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
@@ -212,8 +213,13 @@ body{
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
           <div class="card-title" style="margin-bottom:0">ÚLTIMAS COMPRAS</div>
-          <button onclick="openAddXTB()" style="background:#D2A13A;border:none;border-radius:8px;color:#1a1305;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:inherit">+ Adicionar</button>
+          <div style="display:flex;gap:6px">
+            <button onclick="$('xtb-file').click()" style="background:transparent;border:1px solid #D2A13A;border-radius:8px;color:#D2A13A;font-size:12px;font-weight:700;padding:6px 10px;cursor:pointer;font-family:inherit">⬆ XLSX</button>
+            <button onclick="openAddXTB()" style="background:#D2A13A;border:none;border-radius:8px;color:#1a1305;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:inherit">+ Adicionar</button>
+          </div>
+          <input id="xtb-file" type="file" accept=".xlsx,.xls" style="display:none" onchange="xtbImportPick(this)">
         </div>
+        <div id="xtb-import-msg" style="font-size:12px;margin-bottom:10px;display:none;line-height:1.5"></div>
         <div id="xtb-recentes-list">A carregar…</div>
       </div>
       <div class="card"><div class="card-title">MENSAL POR OWNER (€)</div><div class="chart-wrap"><canvas id="chart-sp-bar"></canvas></div></div>
@@ -777,6 +783,45 @@ function renderXTBRecentesHTML(){
         <div style="font-size:10.5px;color:var(--muted2)">✏️ editar</div>
       </div>
     </div>`).join('');
+}
+
+/* ── Importar relatório XLSX da XTB (aba Cash Operations) ───── */
+async function xtbImportPick(inp){
+  const f=inp.files[0]; inp.value='';
+  const msg=$('xtb-import-msg'); if(!f) return;
+  const show=(t,c)=>{ msg.style.display='block'; msg.style.color=c||'var(--muted)'; msg.innerHTML=t; };
+  try{
+    if(typeof XLSX==='undefined'){ show('Não consegui carregar o leitor de XLSX (sem rede?).','var(--coral)'); return; }
+    show('A ler o ficheiro…');
+    const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
+    const ws=wb.Sheets['Cash Operations'];
+    if(!ws){ show('Não encontro a aba "Cash Operations" neste ficheiro.','var(--coral)'); return; }
+    const data=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+    const hi=data.findIndex(r=>r[0]==='Type'&&r[1]==='Instrument');
+    if(hi<0){ show('Formato do relatório não reconhecido.','var(--coral)'); return; }
+    const H=data[hi], ix=n=>H.indexOf(n);
+    const toIso=v=>{ if(typeof v==='number') return new Date(Math.round((v-25569)*86400000)).toISOString().replace('T',' ').replace('Z',''); return String(v); };
+    const rows=data.slice(hi+1).filter(r=>r[ix('Type')]==='Stock purchase'||r[ix('Type')]==='Subaccount transfer').map(r=>({
+      type:r[ix('Type')], instrument:r[ix('Instrument')], ticker:r[ix('Ticker')], time:toIso(r[ix('Time')]),
+      amount:r[ix('Amount')], id:String(r[ix('ID')]), comment:r[ix('Comment')], product:r[ix('Product')]
+    }));
+    const call=async dry=>{
+      const payload={action:'xtbImport',pin:Auth.getStoredPin()||'',rows,dryRun:dry};
+      const url=Auth.API_URL+'?'+new URLSearchParams({action:payload.action,pin:payload.pin});
+      return postToScript(url,payload);
+    };
+    const d=await call(true);
+    if(!d.ok){ show('Erro: '+(d.error||'desconhecido'),'var(--coral)'); return; }
+    const extra=[d.duplicates?d.duplicates+' já existiam':'', d.outroTicker?d.outroTicker+' de outros ETFs/ações ignoradas':''].filter(Boolean).join(' · ');
+    if(!d.added){ show('Nada de novo para importar.'+(extra?'<br>'+extra:''),'var(--muted)'); return; }
+    const lista=d.preview.map(p=>p.time+' · '+p.owner+' · €'+p.amount).join('\n');
+    if(!confirm('Importar '+d.added+' compras novas de SXR8?\n\n'+lista+(d.added>d.preview.length?'\n…':'')+(extra?'\n\n('+extra+')':''))) { show('Importação cancelada.'); return; }
+    show('A importar…');
+    const r=await call(false);
+    if(!r.ok){ show('Erro: '+(r.error||'desconhecido'),'var(--coral)'); return; }
+    show('✓ '+r.added+' compras importadas'+(extra?'<br><span style="color:var(--muted)">'+extra+'</span>':''),'var(--mint)');
+    loadData(); loadXTBRecentes();
+  }catch(e){ show('Erro: '+e.message,'var(--coral)'); }
 }
 
 function loadXTBRecentes(){
