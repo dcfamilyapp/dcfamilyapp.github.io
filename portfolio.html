@@ -227,17 +227,29 @@ body{
     </section>
 
     <section id="tab-btc" class="tab">
+      <div class="hero" id="btc-hero">
+        <div class="hero-label">Bitcoin em carteira</div>
+        <div class="hero-value" id="btc-hero-qty" style="color:var(--text)">—</div>
+        <div class="hero-sub"><span id="btc-hero-eur">—</span><span>·</span><span class="hero-pct" id="btc-hero-pct">—</span></div>
+      </div>
       <div class="info-bar" id="btc-info"></div>
-      <div class="owner-list" id="btc-monthly-cards"></div>
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
           <div class="card-title" style="margin-bottom:0">ÚLTIMAS COMPRAS</div>
-          <button onclick="openAddBTC()" style="background:#D2A13A;border:none;border-radius:8px;color:#1a1305;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:inherit">+ Adicionar</button>
+          <div style="display:flex;gap:6px">
+            <button onclick="$('btc-file').click()" style="background:transparent;border:1px solid #D2A13A;border-radius:8px;color:#D2A13A;font-size:12px;font-weight:700;padding:6px 10px;cursor:pointer;font-family:inherit">⬆ PDF</button>
+            <button onclick="openAddBTC()" style="background:#D2A13A;border:none;border-radius:8px;color:#1a1305;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:inherit">+ Adicionar</button>
+          </div>
+          <input id="btc-file" type="file" accept=".pdf,application/pdf" style="display:none" onchange="btcImportPick(this)">
         </div>
+        <div id="btc-import-msg" style="font-size:12px;margin-bottom:10px;display:none;line-height:1.5"></div>
         <div id="btc-recentes-list">A carregar…</div>
       </div>
-      <div class="card"><div class="card-title">MENSAL (€)</div><div class="chart-wrap"><canvas id="chart-btc-bar"></canvas></div></div>
-      <div class="card"><div class="card-title">PREÇO DE COMPRA VS MÉDIA ACUMULADA</div><div class="chart-wrap"><canvas id="chart-btc-price"></canvas></div></div>
+      <div class="card">
+        <div class="card-title">DO ATH ATÉ HOJE · ONDE COMPREI</div>
+        <div class="chart-wrap" style="height:260px"><canvas id="chart-btc-price"></canvas></div>
+        <div id="btc-ath-note" style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5"></div>
+      </div>
     </section>
 
     <section id="tab-stocks" class="tab">
@@ -534,33 +546,53 @@ function renderBTC(d){
     <div class="info-chip pnl"><div class="info-label">P&amp;L</div><div class="info-value ${cl(c.btcPnl)}">${sgn(c.btcPnl)}<span style="font-size:0.72em;opacity:0.8;margin-left:4px">(${pct((c.btcPnl/c.btcTotalInvested)*100)})</span></div></div>
     <div class="info-chip"><div class="info-label">Preço Médio</div><div class="info-value">€${c.btcAvgPrice.toLocaleString('pt-PT')}${c.btcAvgPriceUsd?`<div style="font-size:0.8em;color:var(--muted);margin-top:2px">$${c.btcAvgPriceUsd.toLocaleString('pt-PT')}</div>`:''}</div></div>`;
 
-  $('btc-monthly-cards').innerHTML=c.btcMonthlyBreakdown.map(m=>{
-    return `<div class="owner-card" style="--owner-c:#F0A93A">
-      <div class="owner-header" onclick="toggleOwner(this)">
-        <div class="owner-name-row"><span class="owner-dot" style="background:#F0A93A"></span><span class="owner-title">${m.label}</span></div>
-        <div class="owner-right"><span class="owner-pnl ${cl(m.pnl)}">${sgn(m.pnl)}</span><span class="owner-arrow">▼</span></div>
-      </div>
-      <div class="owner-body"><div class="owner-body-inner">
-        <div class="owner-row"><span class="owner-row-l">Investido</span><span class="owner-row-v">${eur(m.invested)}</span></div>
-        <div class="owner-row"><span class="owner-row-l">Quantidade</span><span class="owner-row-v">${m.qty.toFixed(6)} BTC</span></div>
-        <div class="owner-row"><span class="owner-row-l">Preço Médio</span><span class="owner-row-v">€${m.avgPrice.toLocaleString('pt-PT')}</span></div>
-        ${m.avgPriceUsd?`<div class="owner-row"><span class="owner-row-l">Preço Médio ($)</span><span class="owner-row-v">$${m.avgPriceUsd.toLocaleString('pt-PT')}</span></div>`:''}
-        <div class="owner-row"><span class="owner-row-l">Valor Atual</span><span class="owner-row-v">${eur(m.currentValue)}</span></div>
-        <div class="owner-row"><span class="owner-row-l">Retorno</span><span class="owner-row-v ${cl(m.pnlPct)}">${pct(m.pnlPct)}</span></div>
-      </div></div>
-    </div>`;
-  }).join('');
+  // Hero: quantidade de BTC em grande
+  const qtyTot=(c.btcMonthlyBreakdown||[]).reduce((s,m)=>s+m.qty,0);
+  $('btc-hero-qty').textContent=qtyTot.toFixed(6)+' BTC';
+  $('btc-hero-eur').textContent=eur(c.btcVal);
+  const bp=c.btcTotalInvested?(c.btcPnl/c.btcTotalInvested)*100:0;
+  $('btc-hero-pct').innerHTML='<span class="'+cl(c.btcPnl)+'">'+sgn(c.btcPnl)+' ('+pct(bp)+')</span>';
+  $('btc-hero').className='hero '+(c.btcPnl>=0?'up':'down');
 
   if(d.btcPrice) lastBtcPriceEur=d.btcPrice;
-  const ph=d.btcPriceHistory;
-  const btcBarDs=[{label:'Investido',data:d.btcMonthly.map(m=>m.invested),backgroundColor:'#F0A93Acc',borderRadius:5}];
-  dc('chart-btc-bar'); ch['chart-btc-bar']=barChart('chart-btc-bar',d.btcMonthly.map(m=>m.label),btcBarDs,false);
+  renderBtcHistoryChart(d);
+}
 
-  const priceDs=[
-    {label:'Preço Pago',data:ph.map(p=>p.pricePaid),borderColor:'#F0A93A88',backgroundColor:'transparent',borderWidth:1.5,pointRadius:2.5,pointBackgroundColor:'#F0A93A',tension:0.15},
-    {label:'Média Acumulada',data:ph.map(p=>p.runAvg),borderColor:'#FF6B5E',backgroundColor:'transparent',borderWidth:2,pointRadius:0,borderDash:[5,3],tension:0.3}
-  ];
-  dc('chart-btc-price'); ch['chart-btc-price']=lineChart('chart-btc-price',ph.map(p=>p.label),priceDs,v=>'€'+(v/1000).toFixed(0)+'k');
+function renderBtcHistoryChart(d){
+  const H=d.btcHistory, ph=d.btcPriceHistory||[], c=d.calc;
+  dc('chart-btc-price');
+  const note=$('btc-ath-note');
+  if(!H||!H.points||!H.points.length){ if(note) note.textContent='Sem histórico de preços disponível.'; return; }
+  const pts=H.points, labels=pts.map(p=>{const [y,m,dd]=p.d.split('-');return dd+'/'+m+'/'+y.slice(2);});
+  const idxOf=date=>{ let k=0; for(let i=0;i<pts.length;i++){ if(pts[i].d<=date) k=i; } return k; };
+  // compras agrupadas por semana (volume em €)
+  const buy={};
+  ph.forEach(p=>{ const k=idxOf(p.date); (buy[k]=buy[k]||{eur:0,price:0,n:0}); buy[k].eur+=p.eur; buy[k].price=p.pricePaid; buy[k].n++; });
+  const maxEur=Math.max(1,...Object.values(buy).map(b=>b.eur));
+  const buyData=pts.map((_,i)=>buy[i]?buy[i].price:null);
+  const buyR=pts.map((_,i)=>buy[i]?4+Math.sqrt(buy[i].eur/maxEur)*8:0);
+  const avg=c.btcAvgPrice;
+  const flat=v=>pts.map(()=>v);
+  ch['chart-btc-price']=new Chart($('chart-btc-price'),{type:'line',data:{labels,datasets:[
+    {label:'Preço BTC',data:pts.map(p=>p.c),borderColor:'#F0A93A',backgroundColor:'rgba(240,169,58,0.08)',fill:true,borderWidth:2,pointRadius:0,tension:0.25,order:3},
+    {label:'ATH €'+H.ath.price.toLocaleString('pt-PT'),data:flat(H.ath.price),borderColor:'#34D399',borderDash:[6,4],borderWidth:1.5,pointRadius:0,order:4},
+    {label:'Meu preço médio',data:flat(avg),borderColor:'#FF6B5E',borderDash:[5,3],borderWidth:1.5,pointRadius:0,order:2},
+    {label:'Compras',data:buyData,showLine:false,borderColor:'#F2F4F7',backgroundColor:'rgba(210,161,58,0.85)',borderWidth:1.5,pointRadius:buyR,pointHoverRadius:buyR.map(r=>r+2),order:1}
+  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    scales:{
+      x:{ticks:{color:'#8B95A5',font:{family:"'DM Sans'",size:9},maxTicksLimit:7,maxRotation:0},grid:{display:false},border:{display:false}},
+      y:{ticks:{color:'#8B95A5',font:{family:"'DM Mono'",size:9},callback:v=>'€'+(v/1000).toFixed(0)+'k'},grid:{color:GRID},border:{display:false}}
+    },
+    plugins:{
+      legend:{labels:{color:'#8B95A5',font:{family:"'DM Sans'",size:11,weight:'500'},boxWidth:12,usePointStyle:true,padding:12}},
+      tooltip:{...TOOLTIP_BASE,filter:i=>i.raw!=null,callbacks:{label:t=>{
+        if(t.dataset.label==='Compras'){ const b=buy[t.dataIndex]; return ' Compras: '+eur(b.eur)+(b.n>1?' ('+b.n+')':'')+' @ €'+Math.round(b.price).toLocaleString('pt-PT'); }
+        return ' '+t.dataset.label+': €'+Math.round(t.raw).toLocaleString('pt-PT'); }}}
+    }
+  }});
+  const cur=pts[pts.length-1].c, dd=((cur/H.ath.price)-1)*100;
+  const [ay,am,ad]=H.ath.date.split('-');
+  if(note) note.innerHTML='ATH de <b style="color:var(--text)">€'+H.ath.price.toLocaleString('pt-PT')+'</b> em '+ad+'/'+am+'/'+ay+' · preço atual <b style="color:var(--text)">'+pct(dd)+'</b> face ao ATH. O tamanho das bolas é o valor investido em cada semana.';
 }
 
 /* ── Chart factories ── */
@@ -593,6 +625,55 @@ function lineChart(id,labels,datasets,yFmt){
       tooltip:{...TOOLTIP_BASE,callbacks:{label:c=>' '+c.dataset.label+': €'+c.raw.toLocaleString('pt-PT')}}
     }
   }});
+}
+
+/* ── Importar histórico da Bitvavo (PDF) ─────────────────────── */
+function loadScript_(src){ return new Promise((ok,ko)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>ko(new Error('Não consegui carregar '+src)); document.head.appendChild(s); }); }
+async function parseBitvavoPDF_(buf){
+  if(!window.pdfjsLib){
+    await loadScript_('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  const doc=await pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise; const res=[];
+  for(let p=1;p<=doc.numPages;p++){
+    const tc=await (await doc.getPage(p)).getTextContent(); const rows=[];
+    tc.items.forEach(it=>{ if(!it.str.trim()) return; const y=it.transform[5],x=it.transform[4]; let r=rows.find(r=>Math.abs(r.y-y)<2.5); if(!r){r={y,items:[]};rows.push(r);} r.items.push({x,s:it.str.trim()}); });
+    const lines=rows.sort((a,b)=>b.y-a.y).map(r=>r.items.sort((a,b)=>a.x-b.x).map(i=>i.s).join(' '));
+    const get=k=>{ const l=lines.find(l=>l.startsWith(k+' ')); return l?l.slice(k.length+1):''; };
+    const dates=get('Date (Europe/Lisbon)').match(/\d{4}-\d\d-\d\d \d\d:\d\d:\d\d/g)||[];
+    if(!dates.length) continue;
+    const sp=t=>get(t).split(/\s+/).filter(Boolean);
+    const types=sp('Type'), cur=sp('Currency'), amt=sp('Amount');
+    if(types.length!==dates.length||cur.length!==dates.length||amt.length!==dates.length) throw new Error('Não consegui ler a tabela da página '+p+' (formato inesperado).');
+    const quote=get('Quote Price').match(/[\d.]+(?=\s*EUR)/g)||[], paid=get('Received / Paid Amount').match(/-?[\d.]+(?=\s*EUR)/g)||[];
+    let k=0;
+    dates.forEach((d,i)=>{ const o={date:d,type:types[i],currency:cur[i],amount:amt[i]}; if(o.type==='Buy'||o.type==='Sell'){ o.price=quote[k]; o.paid=paid[k]; k++; } res.push(o); });
+  }
+  return res;
+}
+async function btcImportPick(inp){
+  const f=inp.files[0]; inp.value='';
+  const msg=$('btc-import-msg'); if(!f) return;
+  const show=(t,c)=>{ msg.style.display='block'; msg.style.color=c||'var(--muted)'; msg.innerHTML=t; };
+  try{
+    show('A ler o PDF…');
+    const rows=await parseBitvavoPDF_(await f.arrayBuffer());
+    if(!rows.length){ show('Não encontrei transações. É o PDF do histórico da Bitvavo?','var(--coral)'); return; }
+    const call=async dry=>{
+      const payload={action:'btcImport',pin:Auth.getStoredPin()||'',rows,dryRun:dry};
+      return postToScript(Auth.API_URL+'?'+new URLSearchParams({action:payload.action,pin:payload.pin}),payload);
+    };
+    const d=await call(true);
+    if(!d.ok){ show('Erro: '+(d.error||'desconhecido'),'var(--coral)'); return; }
+    const extra=[d.duplicates?d.duplicates+' já existiam':'', d.outrasMoedas?d.outrasMoedas+' compras de outras moedas ignoradas':'', d.vendas?d.vendas+' vendas de BTC ignoradas':''].filter(Boolean).join(' · ');
+    if(!d.added){ show('Nada de novo para importar.'+(extra?'<br>'+extra:''),'var(--muted)'); return; }
+    if(!confirm('Importar '+d.added+' compras de BTC?\n\n'+d.preview.map(p=>p.date+' · '+p.qty+' BTC · €'+p.eur).join('\n')+(extra?'\n\n('+extra+')':''))){ show('Importação cancelada.'); return; }
+    show('A importar…');
+    const r=await call(false);
+    if(!r.ok){ show('Erro: '+(r.error||'desconhecido'),'var(--coral)'); return; }
+    show('✓ '+r.added+' compras importadas'+(extra?'<br><span style="color:var(--muted)">'+extra+'</span>':''),'var(--mint)');
+    loadData(); loadBTCRecentes();
+  }catch(e){ show('Erro: '+e.message,'var(--coral)'); }
 }
 
 /* ── Últimas compras de BTC ──────────────────────────────────── */
