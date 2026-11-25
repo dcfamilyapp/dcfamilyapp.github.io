@@ -116,11 +116,17 @@ body{
 }
 .card-title,.hero-label,.stat-chip-label{letter-spacing:.14em}
 .hero-value,.stat-chip-value{text-shadow:0 0 18px rgba(255,255,255,0.12)}
-/* Título centrado e maior */
-.topbar .brand{align-items:center!important;justify-content:center;width:100%;text-align:center}
+/* Título moderno e centrado; Início à esquerda, Atualizar à direita */
+.topbar-row1{position:relative}
+.topbar .brand{align-items:center!important;justify-content:center;width:100%;text-align:center;padding:0 72px}
 .topbar .brand > div{align-items:center!important;justify-content:center;width:100%}
-.topbar .brand span[style*="font-size:28px"]{font-size:38px!important;padding:12px 26px!important}
-.topbar .brand svg{width:36px!important;height:36px!important}
+.topbar .brand span[style*="font-size:28px"]{font-size:30px!important;font-weight:700!important;letter-spacing:-.02em!important;background:none!important;border:none!important;box-shadow:none!important;padding:0!important;gap:12px!important;color:#F2F4F7!important}
+.topbar .brand span[style*="font-size:28px"] > span:first-child{width:44px;height:44px;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(145deg,rgba(91,141,239,0.22),rgba(255,255,255,0.02));border:1px solid rgba(91,141,239,0.4);box-shadow:0 0 18px -4px rgba(91,141,239,0.5),inset 0 0 14px -8px #5B8DEF;filter:none!important}
+.topbar .brand svg{width:26px!important;height:26px!important}
+.topbar-row1 > div:last-child{position:absolute;left:16px;right:16px;top:50%;transform:translateY(-50%);display:flex;justify-content:space-between;gap:0!important;pointer-events:none}
+.topbar-row1 > div:last-child > *{pointer-events:auto}
+.topbar-row1 > div:last-child .refresh-btn{width:28px;height:28px;border-radius:9px}
+.topbar-row1 > div:last-child .refresh-btn svg{width:12px;height:12px}
 </style>
 </head>
 <body>
