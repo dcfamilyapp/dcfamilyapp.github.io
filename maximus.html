@@ -107,6 +107,15 @@ body{
 .op-right{text-align:right;flex-shrink:0}
 .op-gasto{font-family:'DM Mono',monospace;font-size:13px;font-weight:600}
 .op-kwh{font-size:10.5px;color:var(--muted);margin-top:1px}
+/* ── Widgets futuristas (mesmo estilo do índice) ── */
+.card,.hero,.stat-chip,.info-chip,.owner-card{
+  position:relative;overflow:hidden;isolation:isolate;
+  background:radial-gradient(120% 90% at 100% 0%,rgba(255,255,255,0.05),transparent 60%),linear-gradient(135deg,rgba(255,255,255,0.045),rgba(255,255,255,0.01)),#0E1219;
+  border-color:rgba(255,255,255,0.09);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.05),0 14px 32px -16px rgba(0,0,0,.9);
+}
+.card-title,.hero-label,.stat-chip-label{letter-spacing:.14em}
+.hero-value,.stat-chip-value{text-shadow:0 0 18px rgba(255,255,255,0.12)}
 </style>
 </head>
 <body>
