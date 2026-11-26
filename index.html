@@ -231,7 +231,35 @@ body.drawer-open #drawer{ transform:translateX(0); }
 }
 .thr-btn.active{background:rgba(210,161,58,0.2);border-color:var(--gold);color:var(--gold-light)}
 .thr-btn:active{transform:scale(.96)}
-</style>
+/* Menu remodelado */
+#menu-btn{
+  top:calc(22px + env(safe-area-inset-top))!important;left:18px!important;width:44px;height:44px;
+  padding:0!important;justify-content:center;gap:5px!important;
+  border-radius:14px!important;
+  background:radial-gradient(120% 120% at 100% 0%,rgba(210,161,58,0.18),transparent 60%),linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.01)),#0E1219!important;
+  border:1px solid rgba(210,161,58,0.32)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06),0 0 18px -6px rgba(210,161,58,0.55)!important;
+  color:#F4D27A!important;
+}
+#menu-btn span{width:18px;height:2px;border-radius:2px;background:linear-gradient(90deg,#D2A13A,#F4D27A);box-shadow:0 0 8px rgba(210,161,58,0.7)}
+#menu-btn:active{transform:scale(.94)}
+#drawer-overlay{backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+#drawer{
+  width:300px;background:radial-gradient(120% 60% at 0% 0%,rgba(210,161,58,0.12),transparent 60%),linear-gradient(180deg,#0F131A,#0A0D12);
+  border-right:1px solid rgba(210,161,58,0.22);box-shadow:24px 0 60px -20px rgba(0,0,0,.95);
+}
+#drawer::after{content:'';position:absolute;right:-1px;top:0;bottom:0;width:1px;background:linear-gradient(180deg,transparent,#D2A13A,transparent);box-shadow:0 0 10px #D2A13A;pointer-events:none}
+.drawer-header{border-bottom:1px solid rgba(255,255,255,0.06)}
+.drawer-profile{border-bottom:1px solid rgba(255,255,255,0.06)}
+.drawer-avatar{border-radius:16px;background:linear-gradient(145deg,rgba(210,161,58,0.2),rgba(255,255,255,0.02));border:1px solid rgba(210,161,58,0.35);box-shadow:0 0 18px -6px rgba(210,161,58,0.6)}
+.drawer-username{letter-spacing:.04em}
+.drawer-item{margin:3px 10px;width:calc(100% - 20px);border-radius:14px;padding:12px 14px;transition:background .2s}
+.drawer-item:hover,.drawer-item:active{background:rgba(255,255,255,0.05)}
+.drawer-item-icon{border-radius:10px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 0 14px -6px currentColor}
+.drawer-divider{margin:10px 22px;background:linear-gradient(90deg,transparent,rgba(210,161,58,0.35),transparent)}
+#drawer-settings-sub .drawer-item{padding-left:58px!important}
+.drawer-badge{box-shadow:0 0 10px rgba(255,107,94,0.7)}
+</style></style>
 </head>
 <body>
 
