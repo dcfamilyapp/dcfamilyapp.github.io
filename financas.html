@@ -707,48 +707,119 @@ function openQuickEntry(){
 
 // Chips de categoria — lista completa de CATEGORIAS_DESPESA, com
 // "Supermercados" seleccionada por defeito (categoria onde se gasta mais).
+let _qeManage = false;
+let _qeDragEl = null;
+let _qeLastDrag = 0;
+
 function qeRenderCatChips(){
   const box = document.getElementById('qe-cat-chips');
   if (!box) return;
-  const mv = 'background:none;border:none;color:var(--gold-light);padding:6px 5px;font-size:14px;cursor:pointer;font-family:inherit';
-  const nm = 'background:none;border:none;color:var(--text);padding:7px 4px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap';
+  const base = 'flex:0 0 auto;padding:7px 13px;border-radius:20px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;';
   box.innerHTML = CATEGORIAS_DESPESA.map(c => {
     const e = c.replace(/'/g, "\\'");
     if (_qeManage) {
-      return `<span style="display:inline-flex;align-items:center;flex:0 0 auto;border:1px dashed var(--gold);border-radius:20px;background:rgba(210,161,58,0.1)">
-        <button onclick="qeMoveCat('${e}',-1)" style="${mv}">‹</button>
-        <button onclick="qeSetCat('${e}')" style="${nm}">${c}</button>
-        <button onclick="qeMoveCat('${e}',1)" style="${mv}">›</button></span>`;
+      return `<span data-drag="${c}" style="${base}border:1px dashed var(--gold);background:rgba(210,161,58,0.1);color:var(--gold-light)">${c}</span>`;
     }
-    return `<button onclick="qeSetCat('${e}')"
-      style="flex:0 0 auto;padding:7px 13px;border-radius:20px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;
-      border:1px solid ${c === _qeCat ? 'var(--gold)' : 'var(--border)'};
-      background:${c === _qeCat ? 'rgba(210,161,58,0.18)' : 'var(--surface2)'};
-      color:${c === _qeCat ? 'var(--gold-light)' : 'var(--muted)'}">${c}</button>`;
+    return `<button onclick="qeSetCat('${e}')" style="${base}border:1px solid ${c === _qeCat ? 'var(--gold)' : 'var(--border)'};background:${c === _qeCat ? 'rgba(210,161,58,0.18)' : 'var(--surface2)'};color:${c === _qeCat ? 'var(--gold-light)' : 'var(--muted)'}">${c}</button>`;
   }).join('');
+  qeBindDrag(box, keys => qeDropCat(keys));
 }
 
-// Chips de descrição sugerida — dependem da categoria seleccionada.
-let _qeManage = false;
 function qeRenderSuggChips(){
   const box = document.getElementById('qe-sugg-chips');
   if (!box) return;
   const opts = QUICK_DESC_SUGGESTIONS[_qeCat] || [];
-  const btnBase = 'flex:0 0 auto;padding:6px 11px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap;';
-  const mv = 'background:none;border:none;color:var(--gold-light);padding:5px 4px;font-size:13px;cursor:pointer;font-family:inherit';
-  const nm = 'background:none;border:none;color:var(--text);padding:6px 3px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap';
+  const base = 'flex:0 0 auto;padding:6px 11px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;';
   const chips = opts.map(o => {
     const e = o.replace(/'/g, "\\'");
     return _qeManage
-      ? `<span style="display:inline-flex;align-items:center;flex:0 0 auto;border:1px dashed var(--gold);border-radius:8px;background:rgba(210,161,58,0.1)">
-          <button onclick="qeMoveSugg('${e}',-1)" style="${mv}">‹</button>
-          <button onclick="qeEditSugg('${e}')" style="${nm}">${o} ✎</button>
-          <button onclick="qeMoveSugg('${e}',1)" style="${mv}">›</button></span>`
-      : `<button onclick="qeFillDesc('${e}')" style="${btnBase}border:1px solid var(--border);background:var(--surface2);color:var(--text)">${o}</button>`;
+      ? `<span data-drag="${o}" onclick="qeEditSugg('${e}')" style="${base}border:1px dashed var(--gold);background:rgba(210,161,58,0.1);color:var(--text)">${o} ✎</span>`
+      : `<button onclick="qeFillDesc('${e}')" style="${base}border:1px solid var(--border);background:var(--surface2);color:var(--text)">${o}</button>`;
   }).join('');
-  const acoes = `<button onclick="qeAddSugg()" style="${btnBase}border:1px solid rgba(210,161,58,0.4);background:transparent;color:var(--gold-light)">+ Nova</button>`
-    + `<button onclick="qeToggleManage()" style="${btnBase}border:none;background:none;color:var(--muted);text-decoration:underline">${_qeManage ? 'Concluir' : 'Gerir'}</button>`;
+  const acoes = `<button onclick="qeAddSugg()" style="${base}border:1px solid rgba(210,161,58,0.4);background:transparent;color:var(--gold-light)">+ Nova</button>`
+    + `<button onclick="qeToggleManage()" style="${base}border:none;background:none;color:var(--muted);text-decoration:underline">${_qeManage ? 'Concluir' : 'Gerir'}</button>`;
   box.innerHTML = chips + acoes;
+  qeBindDrag(box, keys => qeDropSugg(keys));
+}
+
+// Arrastar: manter premido ~350 ms e depois mover o dedo/rato
+function qeBindDrag(box, onDrop){
+  if (!box._dragBound) {
+    box._dragBound = true;
+    box.addEventListener('click', ev => {
+      if (Date.now() - _qeLastDrag < 400) { ev.stopPropagation(); ev.preventDefault(); }
+    }, true);
+    box.addEventListener('touchmove', ev => { if (_qeDragEl) ev.preventDefault(); }, { passive: false });
+  }
+  box.querySelectorAll('[data-drag]').forEach(el => {
+    el.addEventListener('pointerdown', ev => {
+      if (!_qeManage || ev.button > 0) return;
+      const sx = ev.clientX, sy = ev.clientY, pid = ev.pointerId;
+      let timer = null;
+      const cancelar = () => {
+        clearTimeout(timer);
+        el.removeEventListener('pointermove', antes);
+        el.removeEventListener('pointerup', cancelar);
+        el.removeEventListener('pointercancel', cancelar);
+      };
+      const antes = m => { if (Math.abs(m.clientX - sx) > 8 || Math.abs(m.clientY - sy) > 8) cancelar(); };
+      el.addEventListener('pointermove', antes);
+      el.addEventListener('pointerup', cancelar);
+      el.addEventListener('pointercancel', cancelar);
+      timer = setTimeout(() => {
+        cancelar();
+        try { el.setPointerCapture(pid); } catch (_) {}
+        _qeDragEl = el;
+        el.style.opacity = '0.6';
+        el.style.transform = 'scale(1.08)';
+        el.style.zIndex = '5';
+        if (navigator.vibrate) navigator.vibrate(12);
+        let mudou = false;
+        const mover = m => {
+          const outros = [...box.querySelectorAll('[data-drag]')].filter(x => x !== el);
+          let alvo = null, dmin = Infinity;
+          outros.forEach(x => {
+            const r = x.getBoundingClientRect();
+            const d = Math.hypot(m.clientX - (r.left + r.width / 2), m.clientY - (r.top + r.height / 2));
+            if (d < dmin) { dmin = d; alvo = x; }
+          });
+          if (!alvo) return;
+          const r = alvo.getBoundingClientRect();
+          const esquerda = m.clientX < r.left + r.width / 2;
+          const destino = esquerda ? alvo : alvo.nextSibling;
+          if (destino !== el && destino !== el.nextSibling) { box.insertBefore(el, destino); mudou = true; }
+        };
+        const largar = () => {
+          el.removeEventListener('pointermove', mover);
+          el.removeEventListener('pointerup', largar);
+          el.removeEventListener('pointercancel', largar);
+          el.style.opacity = ''; el.style.transform = ''; el.style.zIndex = '';
+          _qeDragEl = null;
+          _qeLastDrag = Date.now();
+          if (mudou) onDrop([...box.querySelectorAll('[data-drag]')].map(x => x.dataset.drag));
+        };
+        el.addEventListener('pointermove', mover);
+        el.addEventListener('pointerup', largar);
+        el.addEventListener('pointercancel', largar);
+      }, 350);
+    });
+  });
+}
+
+function qeDropCat(keys){
+  const antes = CATEGORIAS_DESPESA.slice();
+  CATEGORIAS_DESPESA = keys;
+  qePostSugg('categoriaOrdem', { ordem: keys }).then(ok => {
+    if (!ok) { CATEGORIAS_DESPESA = antes; qeRenderCatChips(); }
+  });
+}
+function qeDropSugg(keys){
+  const cat = _qeCat;
+  const antes = (QUICK_DESC_SUGGESTIONS[cat] || []).slice();
+  QUICK_DESC_SUGGESTIONS[cat] = keys;
+  qePostSugg('sugestaoOrdem', { categoria: cat, ordem: keys }).then(ok => {
+    if (!ok) { QUICK_DESC_SUGGESTIONS[cat] = antes; qeRenderSuggChips(); }
+  });
 }
 
 function qeToggleManage(){ _qeManage = !_qeManage; qeRenderCatChips(); qeRenderSuggChips(); }
@@ -765,16 +836,7 @@ async function qePostSugg(action, body){
     return true;
   } catch (e) { alert('Erro de rede: ' + e.message); return false; }
 }
-async function qeMoveSugg(desc, dir){
-  if (await qePostSugg('sugestaoMove', { categoria: _qeCat, desc, direcao: dir })) await loadDescricoes();
-}
-async function qeMoveCat(cat, dir){
-  if (await qePostSugg('categoriaMove', { categoria: cat, direcao: dir })) {
-    categoriasLoaded = false;
-    await loadCategorias();
-    qeRenderCatChips();
-  }
-}
+
 function qeAddSugg(){
   const t = prompt('Nova sugestão para ' + _qeCat + ':');
   if (t && t.trim()) qeSaveSugg('', t.trim());
