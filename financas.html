@@ -476,10 +476,7 @@ let categoriasLoaded   = false;
 
 // Sugestões de descrição por categoria, mostradas como chips na Entrada
 // rápida. Categorias sem entrada aqui não mostram sugestões.
-const QUICK_DESC_SUGGESTIONS = {
-  'Supermercados': ['PD', 'Lidl', 'Continente', 'Aldi'],
-  'Transportes':   ['Carregamento Tesla'],
-};
+const QUICK_DESC_SUGGESTIONS = {}; // preenchido a partir da aba "Sugestões" da folha (ver loadDescricoes)
 
 function loadCategorias(){
   if (categoriasLoaded) return Promise.resolve();
@@ -491,9 +488,25 @@ function loadCategorias(){
         if (d.pagamento.length)  CODIGOS_PAGAMENTO  = d.pagamento;
         if (d.catReceita.length) CATEGORIAS_RECEITA = d.catReceita;
         categoriasLoaded = true;
+        loadDescricoes();
       }
     })
     .catch(() => {}); // se falhar, mantém as listas de reserva
+}
+
+// Junta às sugestões fixas as descrições já usadas na folha (por categoria).
+function loadDescricoes(){
+  fetch(API() + '&action=despesasDescricoes')
+    .then(r => r.json())
+    .then(d => {
+      if (!d.ok) return;
+      Object.entries(d.descricoes).forEach(([cat, lista]) => {
+        const base = QUICK_DESC_SUGGESTIONS[cat] || [];
+        QUICK_DESC_SUGGESTIONS[cat] = [...new Set([...base, ...lista])].slice(0, 12);
+      });
+      try { qeRenderSuggChips(); } catch (e) {}
+    })
+    .catch(() => {});
 }
 const FIELD_STYLE = "width:100%;padding:10px;margin-top:6px;border-radius:9px;border:1px solid rgba(255,255,255,0.08);background:#181D26;color:#F2F4F7;font-size:14px;font-family:inherit";
 
