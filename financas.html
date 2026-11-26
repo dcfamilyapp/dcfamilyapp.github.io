@@ -488,7 +488,6 @@ function loadCategorias(){
         if (d.pagamento.length)  CODIGOS_PAGAMENTO  = d.pagamento;
         if (d.catReceita.length) CATEGORIAS_RECEITA = d.catReceita;
         categoriasLoaded = true;
-        loadDescricoes();
       }
     })
     .catch(() => {}); // se falhar, mantém as listas de reserva
@@ -496,18 +495,18 @@ function loadCategorias(){
 
 // Junta às sugestões fixas as descrições já usadas na folha (por categoria).
 function loadDescricoes(){
-  fetch(API() + '&action=despesasDescricoes')
+  return fetch(API() + '&action=despesasDescricoes')
     .then(r => r.json())
     .then(d => {
       if (!d.ok) return;
-      Object.entries(d.descricoes).forEach(([cat, lista]) => {
-        const base = QUICK_DESC_SUGGESTIONS[cat] || [];
-        QUICK_DESC_SUGGESTIONS[cat] = [...new Set([...base, ...lista])].slice(0, 12);
-      });
+      Object.keys(QUICK_DESC_SUGGESTIONS).forEach(k => delete QUICK_DESC_SUGGESTIONS[k]);
+      Object.entries(d.descricoes).forEach(([cat, lista]) => { QUICK_DESC_SUGGESTIONS[cat] = lista; });
+      descLoaded = true;
       try { qeRenderSuggChips(); } catch (e) {}
     })
     .catch(() => {});
 }
+let descLoaded = false;
 const FIELD_STYLE = "width:100%;padding:10px;margin-top:6px;border-radius:9px;border:1px solid rgba(255,255,255,0.08);background:#181D26;color:#F2F4F7;font-size:14px;font-family:inherit";
 
 // Cada tipo define a ordem dos campos. Tipo vem sempre primeiro, seguido
@@ -628,6 +627,7 @@ let _qeCat  = 'Supermercados';
 let _qeFonteVenc = null; // 'Experis' | 'Adecco' | null — modo vencimento rápido (receita)
 function openQuickEntry(){
   if (document.getElementById('quick-modal')) return;
+  if (!descLoaded) loadDescricoes();
   _qeTipo = 'despesa';
   _qeCat  = 'Supermercados';
   _qeFonteVenc = null;
@@ -720,15 +720,45 @@ function qeRenderCatChips(){
 }
 
 // Chips de descrição sugerida — dependem da categoria seleccionada.
+let _qeManage = false;
 function qeRenderSuggChips(){
   const box = document.getElementById('qe-sugg-chips');
   if (!box) return;
   const opts = QUICK_DESC_SUGGESTIONS[_qeCat] || [];
-  box.innerHTML = opts.map(o => `
-    <button onclick="qeFillDesc('${o.replace(/'/g, "\\'")}')"
-      style="flex:0 0 auto;padding:6px 11px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;
-      border:1px solid var(--border);background:var(--surface2);color:var(--text)">${o}</button>
-  `).join('');
+  const btnBase = 'flex:0 0 auto;padding:6px 11px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap;';
+  const chips = opts.map(o => {
+    const e = o.replace(/'/g, "\\'");
+    return _qeManage
+      ? `<button onclick="qeEditSugg('${e}')" style="${btnBase}border:1px dashed var(--gold);background:rgba(210,161,58,0.1);color:var(--gold-light)">${o} ✎</button>`
+      : `<button onclick="qeFillDesc('${e}')" style="${btnBase}border:1px solid var(--border);background:var(--surface2);color:var(--text)">${o}</button>`;
+  }).join('');
+  const acoes = `<button onclick="qeAddSugg()" style="${btnBase}border:1px solid rgba(210,161,58,0.4);background:transparent;color:var(--gold-light)">+ Nova</button>`
+    + `<button onclick="qeToggleManage()" style="${btnBase}border:none;background:none;color:var(--muted);text-decoration:underline">${_qeManage ? 'Concluir' : 'Gerir'}</button>`;
+  box.innerHTML = chips + acoes;
+}
+
+function qeToggleManage(){ _qeManage = !_qeManage; qeRenderSuggChips(); }
+function qeAddSugg(){
+  const t = prompt('Nova sugestão para ' + _qeCat + ':');
+  if (t && t.trim()) qeSaveSugg('', t.trim());
+}
+function qeEditSugg(atual){
+  const t = prompt('Editar sugestão (deixa vazio para apagar):', atual);
+  if (t === null) return;
+  qeSaveSugg(atual, t.trim());
+}
+async function qeSaveSugg(antiga, nova){
+  const pin = Auth.getStoredPin() || '';
+  try {
+    const r = await fetch(Auth.API_URL + '?action=sugestaoSave&pin=' + encodeURIComponent(pin), {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ pin, categoria: _qeCat, antiga, nova }),
+    });
+    const d = await r.json();
+    if (!d.ok) { alert('Erro: ' + (d.error || 'desconhecido')); return; }
+    await loadDescricoes();
+  } catch (e) { alert('Erro de rede: ' + e.message); }
 }
 
 function qeSetCat(cat){
